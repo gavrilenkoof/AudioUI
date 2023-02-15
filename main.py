@@ -31,6 +31,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         self.logger = logging.getLogger('Main Window')
         self.open_file = None
+        self.socket = None
 
         self.thread_client_configurations()
 
@@ -112,7 +113,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
     def thread_client_configurations(self):
 
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        
         
         self.thr_client_rx = Thread(target=self.rx_task, args=(), daemon=True)
         self.thr_client_tx = Thread(target=self.tx_task, args=(), daemon=True)
@@ -126,10 +127,16 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.logger.info("Connect to server")
         self.logger.debug(f"Address: {TCP_IP}:{TCP_PORT}")
 
-        # try:
-        self.socket.connect((TCP_IP, TCP_PORT))
-        # except:
-            # pass
+        try:
+            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.socket.settimeout(1.5)
+            self.socket.connect((TCP_IP, TCP_PORT))
+        except socket.timeout as ex:
+            self.logger.error(f"Socket.timeout. Connection failed: {ex}")
+            self.socket.close()
+            self.text_brows_wav_file_info.clear()
+            self.text_brows_wav_file_info.append(f"Connection failed. Address {TCP_IP}:{TCP_PORT}")
+
 
 
  
