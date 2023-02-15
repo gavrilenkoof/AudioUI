@@ -31,7 +31,11 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         self.logger = logging.getLogger('Main Window')
         self.open_file = None
+        
         self.socket = None
+
+        self.is_file_open = False
+        self.play_wav_file = False
 
         self.thread_client_configurations()
 
@@ -43,14 +47,17 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.btn_load_wav_file.clicked.connect(self.load_wav_file_handler)
         self.btn_connect_to_server.clicked.connect(self.connect_server_handler)
 
+        self.btn_play_wav_file.clicked.connect(self.play_wav_file_handler)
+
     def widjet_adjust(self):
-        pass
+
+        self.btn_play_wav_file.setText("Play")
 
     def closeEvent(self, event):
         self.logger.info("Close main window")
+        self.play_wav_file = False
         self.close_file()
         self.close_connection()
-
 
     def load_wav_file_handler(self):
         self.logger.info("Load wav file handler")
@@ -67,11 +74,14 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             self.text_brows_wav_file_info.clear()
             self.text_brows_wav_file_info.append(file_name)
 
+            self.is_file_open = True
+
             self.parse_wav_file(file_name_url)
         except FileNotFoundError as ex:
             self.logger.error(f"File open error. {ex}")
             self.text_brows_wav_file_info.clear()
             self.text_brows_wav_file_info.append(f"File not found!")
+            self.is_file_open = False
 
     
     def parse_wav_file(self, file_name_url):
@@ -91,6 +101,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             self.logger.error(f"Parse WAV file error: {ex}")
             self.text_brows_wav_file_info.clear()
             self.text_brows_wav_file_info.append(f"File must have the format '.wav'.")
+            self.is_file_open = False
 
 
 
@@ -105,6 +116,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
     def close_connection(self):
         self.logger.info("Close connection")
 
+        self.thr_client_tx_should_work = False
+        self.thr_client_rx_should_work = False
+
         if self.socket is None:
             pass
         else:
@@ -113,40 +127,58 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
     def thread_client_configurations(self):
 
-        
-        
         self.thr_client_rx = Thread(target=self.rx_task, args=(), daemon=True)
         self.thr_client_tx = Thread(target=self.tx_task, args=(), daemon=True)
 
         self.thr_client_rx_should_work = False
         self.thr_client_tx_should_work = False
 
+        self.thr_client_rx.start()
+        self.thr_client_tx.start()
+
 
 
     def connect_server_handler(self):
-        self.logger.info("Connect to server")
+        self.logger.info("Connecting to the server")
         self.logger.debug(f"Address: {TCP_IP}:{TCP_PORT}")
 
         try:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.socket.settimeout(1.5)
             self.socket.connect((TCP_IP, TCP_PORT))
+            self.thr_client_tx_should_work = True
+            self.thr_client_rx_should_work = True
         except socket.timeout as ex:
             self.logger.error(f"Socket.timeout. Connection failed: {ex}")
-            self.socket.close()
+            self.close_connection()
             self.text_brows_wav_file_info.clear()
             self.text_brows_wav_file_info.append(f"Connection failed. Address {TCP_IP}:{TCP_PORT}")
 
+    def play_wav_file_handler(self):
+        self.logger.info("Play WAV file handler")
+
+        self.play_wav_file = not self.play_wav_file
 
 
+        if self.play_wav_file:
+            self.logger.debug("Play file")
+            self.btn_play_wav_file.setText("Stop")
+        else:
+            self.btn_play_wav_file.setText("Play")
+            self.logger.debug("Stop file")
+
+        
  
     def tx_task(self):
 
         while True:
-            if self.thr_client_tx_should_work is True:
-                pass
+            if self.thr_client_tx_should_work is True and self.play_wav_file is True and self.is_file_open is True:
+                
+                print("Play")
+
+                time.sleep(0.5)
             else:
-                time.sleep(1)
+                time.sleep(2)
 
 
 
@@ -155,7 +187,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             if self.thr_client_rx_should_work is True:
                 pass
             else:
-                time.sleep(1)
+                time.sleep(2)
     
 
 def main():

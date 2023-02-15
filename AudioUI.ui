@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>690</width>
-    <height>452</height>
+    <width>801</width>
+    <height>697</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -26,7 +26,7 @@
       <x>10</x>
       <y>20</y>
       <width>154</width>
-      <height>181</height>
+      <height>291</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -90,6 +90,25 @@
         </widget>
        </item>
        <item>
+        <widget class="QToolButton" name="btn_play_wav_file">
+         <property name="minimumSize">
+          <size>
+           <width>150</width>
+           <height>20</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>100</width>
+           <height>20</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>Play</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QToolButton" name="btn_connect_to_server">
          <property name="minimumSize">
           <size>
@@ -118,7 +137,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>690</width>
+     <width>801</width>
      <height>20</height>
     </rect>
    </property>
