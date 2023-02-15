@@ -7,6 +7,19 @@ import logging
 
 import wave, struct
 from threading import Thread
+import socket
+import time
+
+TCP_IP = '192.168.100.10'
+TCP_PORT = 7
+
+
+# class ClientTCP:
+
+#     def __init__(self, host_address=0):
+#         self.host_address = 0
+#         self.connect = False
+
 
 
 class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
@@ -14,10 +27,12 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         super(AudioUIApp, self).__init__(parent)
         self.setupUi(self)
 
+        # self.connection = ClientTCP()
+
         self.logger = logging.getLogger('Main Window')
         self.open_file = None
 
-        self.init_app()
+        self.thread_client_configurations()
 
         self.widjet_adjust()
         self.widjet_functional()
@@ -27,19 +42,13 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.btn_load_wav_file.clicked.connect(self.load_wav_file_handler)
         self.btn_connect_to_server.clicked.connect(self.connect_server_handler)
 
-
-
     def widjet_adjust(self):
         pass
-
-    def init_app(self):
-        self.logger.info("Init main window")
 
     def closeEvent(self, event):
         self.logger.info("Close main window")
         self.close_file()
-
-        pass
+        self.close_connection()
 
 
     def load_wav_file_handler(self):
@@ -48,41 +57,98 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         # close prev file
         self.close_file()
 
-        file_name_url, _ = QFileDialog.getOpenFileName(self)
-        self.logger.debug(f"Get file name: {file_name_url}")
+        try:
+            file_name_url, _ = QFileDialog.getOpenFileName(self)
+            self.logger.debug(f"Get file name: {file_name_url}")
 
-        file_name = QUrl.fromLocalFile(file_name_url).fileName()
+            file_name = QUrl.fromLocalFile(file_name_url).fileName()
 
-        self.text_brows_wav_file_info.clear()
-        self.text_brows_wav_file_info.append(file_name)
+            self.text_brows_wav_file_info.clear()
+            self.text_brows_wav_file_info.append(file_name)
 
-        self.parse_wav_file(file_name_url)
+            self.parse_wav_file(file_name_url)
+        except FileNotFoundError as ex:
+            self.logger.error(f"File open error. {ex}")
+            self.text_brows_wav_file_info.clear()
+            self.text_brows_wav_file_info.append(f"File not found!")
 
     
     def parse_wav_file(self, file_name_url):
+
         self.logger.info("Parse wav file")
 
-        self.open_file = wave.open(file_name_url, 'r')
-        number_frames = self.open_file.getnframes()
-        frame_rate = self.open_file.getframerate()
+        try:
+            self.open_file = wave.open(file_name_url, 'r')
+            number_frames = self.open_file.getnframes()
+            frame_rate = self.open_file.getframerate()
 
-        self.logger.debug(f"number_frames: {number_frames}")
-        self.logger.debug(f"frame_rate: {frame_rate}")
+            self.logger.debug(f"number_frames: {number_frames}")
+            self.logger.debug(f"frame_rate: {frame_rate}")
 
-        self.text_brows_wav_file_info.append(f"frame rate: {frame_rate} Hz")
+            self.text_brows_wav_file_info.append(f"frame rate: {frame_rate} Hz")
+        except wave.Error as ex:
+            self.logger.error(f"Parse WAV file error: {ex}")
+            self.text_brows_wav_file_info.clear()
+            self.text_brows_wav_file_info.append(f"File must have the format '.wav'.")
+
 
 
     def close_file(self):
+        self.logger.info("Close file")
 
         if self.open_file is None:
-            return
+            pass
         else:
             self.open_file.close()
+
+    def close_connection(self):
+        self.logger.info("Close connection")
+
+        if self.socket is None:
+            pass
+        else:
+            self.socket.close()
+
+
+    def thread_client_configurations(self):
+
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        
+        self.thr_client_rx = Thread(target=self.rx_task, args=(), daemon=True)
+        self.thr_client_tx = Thread(target=self.tx_task, args=(), daemon=True)
+
+        self.thr_client_rx_should_work = False
+        self.thr_client_tx_should_work = False
 
 
 
     def connect_server_handler(self):
-        self.logger.info("Connect to server handler")
+        self.logger.info("Connect to server")
+        self.logger.debug(f"Address: {TCP_IP}:{TCP_PORT}")
+
+        # try:
+        self.socket.connect((TCP_IP, TCP_PORT))
+        # except:
+            # pass
+
+
+ 
+    def tx_task(self):
+
+        while True:
+            if self.thr_client_tx_should_work is True:
+                pass
+            else:
+                time.sleep(1)
+
+
+
+    def rx_task(self):
+        while True:
+            if self.thr_client_rx_should_work is True:
+                pass
+            else:
+                time.sleep(1)
     
 
 def main():
