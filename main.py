@@ -49,7 +49,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.source_sample_rate = 44100
         self.chunk = 1400 
         # self.record_secs = 3 
-        self.dev_index = 6 
+        # self.dev_index = 6 
         self.target_sample_rate = 16000
         self.audio = pyaudio.PyAudio()
         self.stream = None
@@ -191,7 +191,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.disable_mic()
 
         self.stream = self.audio.open(format=self.form_1, rate=self.source_sample_rate, 
-                channels=self.chans, input_device_index = self.dev_index, input = True,
+                channels=self.chans, input = True,
                 frames_per_buffer=self.chunk)
 
         self.text_brows_info.append(f"Enable MIC")
