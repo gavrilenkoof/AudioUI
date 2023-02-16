@@ -53,6 +53,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         self.btn_play_wav_file.setText("Play")
 
+        self.edit_ip_address.setText("192.168.100.10:7")
+
     def closeEvent(self, event):
         self.logger.info("Close main window")
         self.close_connection()
@@ -144,28 +146,34 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
     def connect_server_handler(self):
         self.logger.info("Connecting to the server")
-        self.logger.debug(f"Address: {TCP_IP}:{TCP_PORT}")
 
         try:
+
+            tcp_ip, tcp_port = self.get_ip_address()
+
             self.text_brows_info.clear()
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.socket.settimeout(1.5)
-            self.socket.connect((TCP_IP, TCP_PORT))
+            self.socket.connect((tcp_ip, tcp_port))
             self.thr_client_tx_should_work = True
             self.thr_client_rx_should_work = True
-            self.text_brows_info.append(f"Сonnection to {TCP_IP}:{TCP_PORT} successfully")
-            self.logger.debug(f"Сonnection to {TCP_IP}:{TCP_PORT} successfully")
+            self.text_brows_info.append(f"Connection to {tcp_ip}:{tcp_port} successfully")
+            self.logger.debug(f"Connection to {tcp_ip}:{tcp_port} successfully")
         except socket.timeout as ex:
             self.logger.error(f"Socket.timeout. Connection failed: {ex}")
             self.close_connection()
             self.text_brows_info.clear()
-            self.text_brows_info.append(f"Connection failed. Address {TCP_IP}:{TCP_PORT}")
+            self.text_brows_info.append(f"Connection failed. Address {tcp_ip}:{tcp_port}")
+        except IndexError as ex:
+            self.logger.error(f"IndexError. {ex}")
+            self.text_brows_info.clear()
+            self.text_brows_info.append(f"Bad address format!")
+
 
     def play_wav_file_handler(self):
         self.logger.info("Play WAV file handler")
 
         self.play_wav_file = not self.play_wav_file
-
 
         if self.play_wav_file:
             self.logger.debug("Play file")
@@ -177,6 +185,11 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             self.text_brows_info.append("Stop")
 
         
+    def get_ip_address(self):
+
+        text_server_address = self.edit_ip_address.text()
+        list_address = text_server_address.split(":")
+        return list_address[0], int(list_address[1])
  
     def tx_task(self):
 
