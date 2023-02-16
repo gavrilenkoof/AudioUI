@@ -6,7 +6,7 @@ import AudioUI
 import logging
 
 import wave, struct
-from threading import Thread
+from threading import Thread, Event
 import socket
 import time
 
@@ -30,7 +30,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         # self.connection = ClientTCP()
 
         self.logger = logging.getLogger('Main Window')
-        self.open_file = None
+        self.audio_file = None
         
         self.socket = None
 
@@ -55,9 +55,10 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
     def closeEvent(self, event):
         self.logger.info("Close main window")
+        self.close_connection()
         self.play_wav_file = False
         self.close_file()
-        self.close_connection()
+        
 
     def load_wav_file_handler(self):
         self.logger.info("Load wav file handler")
@@ -71,16 +72,16 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
             file_name = QUrl.fromLocalFile(file_name_url).fileName()
 
-            self.text_brows_wav_file_info.clear()
-            self.text_brows_wav_file_info.append(file_name)
+            self.text_brows_info.clear()
+            self.text_brows_info.append(f"File name: {file_name}")
 
             self.is_file_open = True
 
             self.parse_wav_file(file_name_url)
         except FileNotFoundError as ex:
             self.logger.error(f"File open error. {ex}")
-            self.text_brows_wav_file_info.clear()
-            self.text_brows_wav_file_info.append(f"File not found!")
+            self.text_brows_info.clear()
+            self.text_brows_info.append(f"File not found!")
             self.is_file_open = False
 
     
@@ -89,18 +90,18 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.logger.info("Parse wav file")
 
         try:
-            self.open_file = wave.open(file_name_url, 'r')
-            number_frames = self.open_file.getnframes()
-            frame_rate = self.open_file.getframerate()
-
+            self.audio_file = wave.open(file_name_url, 'r')
+            number_frames = self.audio_file.getnframes()
+            frame_rate = self.audio_file.getframerate()
+            # stat = self.audio_file.getparams()
             self.logger.debug(f"number_frames: {number_frames}")
             self.logger.debug(f"frame_rate: {frame_rate}")
 
-            self.text_brows_wav_file_info.append(f"frame rate: {frame_rate} Hz")
+            # self.text_brows_info.append(f"frame rate: {frame_rate} Hz")
         except wave.Error as ex:
             self.logger.error(f"Parse WAV file error: {ex}")
-            self.text_brows_wav_file_info.clear()
-            self.text_brows_wav_file_info.append(f"File must have the format '.wav'.")
+            self.text_brows_info.clear()
+            self.text_brows_info.append(f"File must have the format '.wav'.")
             self.is_file_open = False
 
 
@@ -108,10 +109,10 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
     def close_file(self):
         self.logger.info("Close file")
 
-        if self.open_file is None:
+        if self.audio_file is None:
             pass
         else:
-            self.open_file.close()
+            self.audio_file.close()
 
     def close_connection(self):
         self.logger.info("Close connection")
@@ -119,10 +120,13 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.thr_client_tx_should_work = False
         self.thr_client_rx_should_work = False
 
+
         if self.socket is None:
             pass
         else:
             self.socket.close()
+
+
 
 
     def thread_client_configurations(self):
@@ -143,16 +147,19 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.logger.debug(f"Address: {TCP_IP}:{TCP_PORT}")
 
         try:
+            self.text_brows_info.clear()
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.socket.settimeout(1.5)
             self.socket.connect((TCP_IP, TCP_PORT))
             self.thr_client_tx_should_work = True
             self.thr_client_rx_should_work = True
+            self.text_brows_info.append(f"Сonnection to {TCP_IP}:{TCP_PORT} successfully")
+            self.logger.debug(f"Сonnection to {TCP_IP}:{TCP_PORT} successfully")
         except socket.timeout as ex:
             self.logger.error(f"Socket.timeout. Connection failed: {ex}")
             self.close_connection()
-            self.text_brows_wav_file_info.clear()
-            self.text_brows_wav_file_info.append(f"Connection failed. Address {TCP_IP}:{TCP_PORT}")
+            self.text_brows_info.clear()
+            self.text_brows_info.append(f"Connection failed. Address {TCP_IP}:{TCP_PORT}")
 
     def play_wav_file_handler(self):
         self.logger.info("Play WAV file handler")
@@ -163,9 +170,11 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         if self.play_wav_file:
             self.logger.debug("Play file")
             self.btn_play_wav_file.setText("Stop")
+            self.text_brows_info.append("Playing")
         else:
             self.btn_play_wav_file.setText("Play")
             self.logger.debug("Stop file")
+            self.text_brows_info.append("Stop")
 
         
  
@@ -174,11 +183,18 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         while True:
             if self.thr_client_tx_should_work is True and self.play_wav_file is True and self.is_file_open is True:
                 
-                print("Play")
+                wave_bytes = self.audio_file.readframes(128)
 
-                time.sleep(0.5)
+                message = ""
+                for i in range(0, len(wave_bytes)):
+                    message += hex(wave_bytes[i])[2:]
+
+                self.socket.send(message.encode("utf-8"))
+
+                # time.sleep(0.014)
+                Event().wait(0.0225)
             else:
-                time.sleep(2)
+                time.sleep(1)
 
 
 
@@ -187,7 +203,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             if self.thr_client_rx_should_work is True:
                 pass
             else:
-                time.sleep(2)
+                time.sleep(1)
     
 
 def main():
