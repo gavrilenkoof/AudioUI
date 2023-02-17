@@ -27,7 +27,7 @@ TCP_PORT = 7
 
 class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
-    DEFAULT_TIMEOUT_MSG = 0.030
+    DEFAULT_TIMEOUT_MSG = 0.010
     SOURCE_SAMP_WIDTH = 2
     TARGET_SAMP_WIDTH = 1
     UINT8_BIAS = 128
@@ -56,8 +56,10 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.form_1 = pyaudio.paInt8 
         self.chans = 1 
         self.source_sample_rate = 44100
-        self.chunk = 1024 * 6
-        self.target_sample_rate = 16000
+
+        # self.chunk = int(2048 * (44100 / 16000))
+        self.chunk = 1024
+
         self.audio = pyaudio.PyAudio()
         self.stream = None
         # self.ratio = self.target_sample_rate / self.source_sample_rate
@@ -294,6 +296,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
     def tx_task(self):
         
         cvstate = None
+        number = 0
         while True:
             if self.thr_client_tx_should_work is True and self.play_wav_file is True and self.is_file_open is True and self.mode_play_file is True:
                 
@@ -302,28 +305,40 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 for i in range(0, len(wave_bytes)):
                     message += hex(wave_bytes[i])[2:]
 
-                self.socket.send(message.encode("utf-8"))
+                message = message.encode("utf-8")
+
+                # print(len(message))
+
+                self.socket.send(message)
 
                 period = self.get_time_period_message()
 
-                Event().wait(period)
+                Event().wait(0.012)
 
             elif self.thr_client_tx_should_work is True and self.play_audio_mic is True and self.is_connect_mic is True and self.mode_play_file is False:
-
+                number += 1
+                # try:
                 data = self.stream.read(self.chunk)
-                new_data, cvstate = audioop.ratecv(data, AudioUIApp.SOURCE_SAMP_WIDTH, self.chans, 
-                            self.source_sample_rate, self.target_sample_rate, cvstate)
+                # new_data, cvstate = audioop.ratecv(data, AudioUIApp.SOURCE_SAMP_WIDTH, self.chans, 
+                #             self.source_sample_rate, self.target_sample_rate, cvstate)
                 
-                message = audioop.lin2lin(new_data, AudioUIApp.SOURCE_SAMP_WIDTH, AudioUIApp.TARGET_SAMP_WIDTH)
-                message = audioop.bias(message, AudioUIApp.TARGET_SAMP_WIDTH, AudioUIApp.UINT8_BIAS)
+                # message = audioop.lin2lin(new_data, AudioUIApp.SOURCE_SAMP_WIDTH, AudioUIApp.TARGET_SAMP_WIDTH)
+                # message = audioop.bias(message, AudioUIApp.TARGET_SAMP_WIDTH, AudioUIApp.UINT8_BIAS)
+                message = data
+                print(len(message), number)
 
-                
                 self.socket.send(message)
+
+                period = self.get_time_period_message()
+                Event().wait(period)
+
+                # except socket.timeout as ex:
+                #     continue
 
                 # period = self.get_time_period_message()
                 # Event().wait(period)
             else:
-                Event().wait(0.001)
+                Event().wait(0.1)
 
 
 
