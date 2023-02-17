@@ -288,7 +288,10 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         elif data.find("normal") != -1:
             self.set_time_period_message(AudioUIApp.DEFAULT_TIMEOUT_MSG)
             
-
+        pos_start = data.find("per:")
+        pos_end = data.find(",")
+        if pos_start != -1 and pos_end != -1:
+            print(data[pos_start:pos_end], self.period)
  
     def tx_task(self):
 
@@ -304,24 +307,13 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
                 period = self.get_time_period_message()
 
-                print(period)
+                
 
                 Event().wait(period)
 
             elif self.thr_client_tx_should_work is True and self.play_audio_mic is True and self.is_connect_mic is True and self.mode_play_file is False:
 
-                list_val = list()
-                message = ""
-                raw_data = self.stream.read(self.chunk, exception_on_overflow=False)
-                for i in range(0, len(raw_data)):
-                    list_val.append(raw_data[i])
-                
-                resampled_data = self.resampler.process(list_val, self.ratio)
-                resampled_data = self.add_n_convert(resampled_data)
 
-                for val in resampled_data:
-                    val = val[2:]
-                    message += val
 
                 self.socket.send(message.encode("utf-8"))
 
