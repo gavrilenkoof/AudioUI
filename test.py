@@ -25,10 +25,6 @@ print("recording...")
 frames = []
 cvstate = None
 
-def mapIntToInt(x, inp_min=0, inp_max=65535, out_min=0, out_max=255):
-    return (x - inp_min) * (out_max - out_min) / (inp_max - inp_min) + out_min
-    
-
 for i in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
     data = stream.read(CHUNK)
     new_data, cvstate = audioop.ratecv(data, 2, 1, 44100, 16000, cvstate)

@@ -5,12 +5,12 @@ import sys
 import AudioUI
 import logging
 
-import wave, struct
+import wave
 from threading import Thread, Event
 import socket
 import time
 import pyaudio
-import numpy as np
+import audioop
 
 
 TCP_IP = '192.168.100.10'
@@ -27,7 +27,10 @@ TCP_PORT = 7
 
 class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
-    DEFAULT_TIMEOUT_MSG= 0.030
+    DEFAULT_TIMEOUT_MSG = 0.030
+    SOURCE_SAMP_WIDTH = 2
+    TARGET_SAMP_WIDTH = 1
+    UINT8_BIAS = 128
 
     def __init__(self, parent=None):
         super(AudioUIApp, self).__init__(parent)
@@ -53,13 +56,11 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.form_1 = pyaudio.paInt8 
         self.chans = 1 
         self.source_sample_rate = 44100
-        self.chunk = 1400 
-        # self.record_secs = 3 
-        # self.dev_index = 6 
+        self.chunk = 1024 * 6
         self.target_sample_rate = 16000
         self.audio = pyaudio.PyAudio()
         self.stream = None
-        self.ratio = self.target_sample_rate / self.source_sample_rate
+        # self.ratio = self.target_sample_rate / self.source_sample_rate
         
         self.thread_client_configurations()
 
@@ -212,7 +213,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
             # self.text_brows_info.clear()
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.socket.settimeout(0.5)
+            self.socket.settimeout(1.5)
             self.socket.connect((tcp_ip, tcp_port))
             self.thr_client_tx_should_work = True
             self.thr_client_rx_should_work = True
@@ -269,9 +270,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
     def compress_val(self):
         return 0
 
-    def add_n_convert(self, value):
-        return hex(int(value) + 128)
-
     def get_time_period_message(self):
         return self.period
 
@@ -294,7 +292,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             print(data[pos_start:pos_end], self.period)
  
     def tx_task(self):
-
+        
+        cvstate = None
         while True:
             if self.thr_client_tx_should_work is True and self.play_wav_file is True and self.is_file_open is True and self.mode_play_file is True:
                 
@@ -307,19 +306,24 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
                 period = self.get_time_period_message()
 
-                
-
                 Event().wait(period)
 
             elif self.thr_client_tx_should_work is True and self.play_audio_mic is True and self.is_connect_mic is True and self.mode_play_file is False:
 
+                data = self.stream.read(self.chunk)
+                new_data, cvstate = audioop.ratecv(data, AudioUIApp.SOURCE_SAMP_WIDTH, self.chans, 
+                            self.source_sample_rate, self.target_sample_rate, cvstate)
+                
+                message = audioop.lin2lin(new_data, AudioUIApp.SOURCE_SAMP_WIDTH, AudioUIApp.TARGET_SAMP_WIDTH)
+                message = audioop.bias(message, AudioUIApp.TARGET_SAMP_WIDTH, AudioUIApp.UINT8_BIAS)
 
+                
+                self.socket.send(message)
 
-                self.socket.send(message.encode("utf-8"))
-
-                # Event().wait(0.0225)
+                # period = self.get_time_period_message()
+                # Event().wait(period)
             else:
-                time.sleep(0.5)
+                Event().wait(0.001)
 
 
 
@@ -336,11 +340,13 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 except socket.timeout as ex:
                     continue
 
-                Event().wait(0.01)
+                except:
+                    continue
+
+                Event().wait(0.001)
 
             else:                
-
-                time.sleep(0.5)
+                Event().wait(0.001)
     
 
 def main():
