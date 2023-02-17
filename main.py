@@ -324,12 +324,14 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 
                 message = audioop.lin2lin(data, AudioUIApp.SOURCE_SAMP_WIDTH, AudioUIApp.TARGET_SAMP_WIDTH)
                 message = audioop.bias(message, AudioUIApp.TARGET_SAMP_WIDTH, AudioUIApp.UINT8_BIAS)
-                print(len(message), number, message[:10])
+                # print(len(message), number, message[:10])
 
                 self.socket.send(message)
 
                 period = self.get_time_period_message()
-                Event().wait(0.025)
+
+                Event().wait(0.013)
+                # Event().wait(period)
 
                 # except socket.timeout as ex:
                 #     continue
