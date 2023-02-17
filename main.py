@@ -11,7 +11,7 @@ import socket
 import time
 import pyaudio
 import numpy as np
-import samplerate as sr
+
 
 TCP_IP = '192.168.100.10'
 TCP_PORT = 7
@@ -26,6 +26,9 @@ TCP_PORT = 7
 
 
 class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
+
+    DEFAULT_TIMEOUT_MSG= 0.030
+
     def __init__(self, parent=None):
         super(AudioUIApp, self).__init__(parent)
         self.setupUi(self)
@@ -35,6 +38,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.logger = logging.getLogger('Main Window')
 
         self.socket = None
+        self.connection = False
 
         self.audio_file = None
         self.is_file_open = False
@@ -43,6 +47,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.play_audio_mic = False
         self.mode_play_file = True
 
+        
+        self.period = AudioUIApp.DEFAULT_TIMEOUT_MSG
 
         self.form_1 = pyaudio.paInt8 
         self.chans = 1 
@@ -53,10 +59,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.target_sample_rate = 16000
         self.audio = pyaudio.PyAudio()
         self.stream = None
-        self.resampler = sr.Resampler()
         self.ratio = self.target_sample_rate / self.source_sample_rate
         
-        self.add_n_convert = np.vectorize(self.add_n_convert)
         self.thread_client_configurations()
 
         self.widjet_adjust()
@@ -145,6 +149,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.thr_client_tx_should_work = False
         self.thr_client_rx_should_work = False
 
+        self.connection = False
+
 
         if self.socket is None:
             pass
@@ -179,6 +185,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         self.thr_client_rx_should_work = False
         self.thr_client_tx_should_work = False
+        self.connection = False
 
         self.thr_client_rx.start()
         self.thr_client_tx.start()
@@ -205,10 +212,11 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
             # self.text_brows_info.clear()
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.socket.settimeout(1.5)
+            self.socket.settimeout(0.5)
             self.socket.connect((tcp_ip, tcp_port))
             self.thr_client_tx_should_work = True
             self.thr_client_rx_should_work = True
+            self.connection = True
             self.text_brows_info.append(f"Connection to {tcp_ip}:{tcp_port} successfully")
             self.logger.debug(f"Connection to {tcp_ip}:{tcp_port} successfully")
         except socket.timeout as ex:
@@ -219,6 +227,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         except IndexError as ex:
             self.logger.error(f"IndexError. {ex}")
             # self.text_brows_info.clear()
+            self.close_connection()
             self.text_brows_info.append(f"Bad address format!")
 
 
@@ -262,6 +271,24 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
     def add_n_convert(self, value):
         return hex(int(value) + 128)
+
+    def get_time_period_message(self):
+        return self.period
+
+    def set_time_period_message(self, value):
+        self.period = value
+
+    def parse_data(self, data):
+        data = data.decode("utf-8")
+
+        if data.find("fastly") != -1:
+            self.set_time_period_message(AudioUIApp.DEFAULT_TIMEOUT_MSG - 0.002)
+        elif data.find("slowly") != -1:
+            self.set_time_period_message(AudioUIApp.DEFAULT_TIMEOUT_MSG + 0.002)
+        elif data.find("normal") != -1:
+            self.set_time_period_message(AudioUIApp.DEFAULT_TIMEOUT_MSG)
+            
+
  
     def tx_task(self):
 
@@ -269,14 +296,18 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             if self.thr_client_tx_should_work is True and self.play_wav_file is True and self.is_file_open is True and self.mode_play_file is True:
                 
                 wave_bytes = self.audio_file.readframes(512)
-
                 message = ""
                 for i in range(0, len(wave_bytes)):
                     message += hex(wave_bytes[i])[2:]
 
                 self.socket.send(message.encode("utf-8"))
 
-                Event().wait(0.0225)
+                period = self.get_time_period_message()
+
+                print(period)
+
+                Event().wait(period)
+
             elif self.thr_client_tx_should_work is True and self.play_audio_mic is True and self.is_connect_mic is True and self.mode_play_file is False:
 
                 list_val = list()
@@ -302,9 +333,21 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
     def rx_task(self):
         while True:
-            if self.thr_client_rx_should_work is True:
-                pass
-            else:
+            if self.thr_client_rx_should_work is True and self.connection is True:
+
+                try:
+                    recv_data = self.socket.recv(64)
+                    if recv_data == "":
+                        continue
+                    self.parse_data(recv_data)
+
+                except socket.timeout as ex:
+                    continue
+
+                Event().wait(0.01)
+
+            else:                
+
                 time.sleep(0.5)
     
 

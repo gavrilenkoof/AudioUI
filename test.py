@@ -1,13 +1,13 @@
 import pyaudio
 import wave
+import audioop
  
 FORMAT = pyaudio.paInt16
-CHANNELS = 2
+CHANNELS = 1
 RATE = 44100
 CHUNK = 1024
 RECORD_SECONDS = 5
 WAVE_OUTPUT_FILENAME = "file.wav"
-# DEV_INDEX = 19
  
 audio = pyaudio.PyAudio()
  
@@ -23,10 +23,14 @@ print(audio.get_default_input_device_info())
 
 print("recording...")
 frames = []
- 
+cvstate = None
+
 for i in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
     data = stream.read(CHUNK)
-    frames.append(data)
+
+    new_data, cvstate = audioop.ratecv(data, 2, 1, 44100, 16000, cvstate)
+    frames.append(new_data)
+
 print("finished recording")
  
  
@@ -34,10 +38,12 @@ print("finished recording")
 stream.stop_stream()
 stream.close()
 audio.terminate()
+
+val = audio.get_sample_size(FORMAT)
  
 waveFile = wave.open(WAVE_OUTPUT_FILENAME, 'wb')
 waveFile.setnchannels(CHANNELS)
-waveFile.setsampwidth(audio.get_sample_size(FORMAT))
-waveFile.setframerate(RATE)
+waveFile.setsampwidth(2)
+waveFile.setframerate(16000)
 waveFile.writeframes(b''.join(frames))
 waveFile.close()
