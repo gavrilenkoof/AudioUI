@@ -53,7 +53,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         
         self.period = AudioUIApp.DEFAULT_TIMEOUT_MSG
 
-        self.form_1 = pyaudio.paInt8 
+        self.form_1 = pyaudio.paInt16 
         self.chans = 1 
         self.source_sample_rate = 44100
 
@@ -322,15 +322,14 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 # new_data, cvstate = audioop.ratecv(data, AudioUIApp.SOURCE_SAMP_WIDTH, self.chans, 
                 #             self.source_sample_rate, self.target_sample_rate, cvstate)
                 
-                # message = audioop.lin2lin(new_data, AudioUIApp.SOURCE_SAMP_WIDTH, AudioUIApp.TARGET_SAMP_WIDTH)
-                # message = audioop.bias(message, AudioUIApp.TARGET_SAMP_WIDTH, AudioUIApp.UINT8_BIAS)
-                message = data
-                print(len(message), number)
+                message = audioop.lin2lin(data, AudioUIApp.SOURCE_SAMP_WIDTH, AudioUIApp.TARGET_SAMP_WIDTH)
+                message = audioop.bias(message, AudioUIApp.TARGET_SAMP_WIDTH, AudioUIApp.UINT8_BIAS)
+                print(len(message), number, message[:10])
 
                 self.socket.send(message)
 
                 period = self.get_time_period_message()
-                Event().wait(period)
+                Event().wait(0.025)
 
                 # except socket.timeout as ex:
                 #     continue
