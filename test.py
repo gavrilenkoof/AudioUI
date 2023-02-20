@@ -5,7 +5,7 @@ import audioop
 FORMAT = pyaudio.paInt16
 CHANNELS = 1
 RATE = 44100
-CHUNK = 1024
+CHUNK = 1
 RECORD_SECONDS = 5
 
 CHUNK_AUDIO = int(1024 / (44100 / 16000)) + 1
