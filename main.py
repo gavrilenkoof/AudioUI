@@ -28,6 +28,7 @@ TCP_PORT = 7
 class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
     DEFAULT_TIMEOUT_MSG = 0.010
+    DEFAULT_MIC_TIMEOUT_MSG = 0.004
     SOURCE_SAMP_WIDTH = 2
     TARGET_SAMP_WIDTH = 1
     UINT8_BIAS = 128
@@ -60,6 +61,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         # self.chunk = int(2048 * (44100 / 16000))
         self.chunk = 1024
+        # self.chunk = 5645
 
         self.audio = pyaudio.PyAudio()
         self.stream = None
@@ -170,8 +172,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         else:
             self.stream.stop_stream()
             self.stream.close()
-            self.stream_output.start_stream()
-            self.stream_output.close()
 
 
     def change_mode_handler(self):
@@ -204,15 +204,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.is_connect_mic = True
 
         self.disable_mic()
-
-        self.stream = self.audio.open(format=self.form_1, rate=self.source_sample_rate, 
-                channels=self.chans, input = True,
-                frames_per_buffer=self.chunk)
-
-
-        # self.stream_output = self.audio.open(format=self.form_1, channels=self.chans,
-        #     rate=self.source_sample_rate, output=True,
-        #     frames_per_buffer=self.chunk)
 
         self.text_brows_info.append(f"Enable MIC")
         
@@ -265,10 +256,14 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.play_audio_mic = not self.play_audio_mic
 
         if self.play_audio_mic:
+            self.stream = self.audio.open(format=self.form_1, rate=self.source_sample_rate, 
+                channels=self.chans, input = True,
+                frames_per_buffer=self.chunk)
             self.logger.debug("Recording")
             self.btn_play_mic.setText("Stop")
             self.text_brows_info.append("Microphone recording")
         else:
+            self.disable_mic()
             self.logger.debug("Stop recording")
             self.btn_play_mic.setText("Record")
             self.text_brows_info.append("Microphone stop recording")
@@ -291,12 +286,24 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
     def parse_data(self, data):
         data = data.decode("utf-8")
 
+        def_val = 0
+
+        if self.play_audio_mic is True:
+            def_val = AudioUIApp.DEFAULT_MIC_TIMEOUT_MSG
+            print("MIC")
+        elif self.play_wav_file is True:
+            def_val = AudioUIApp.DEFAULT_TIMEOUT_MSG
+            print("Audio")
+        else:
+            def_val = AudioUIApp.DEFAULT_TIMEOUT_MSG
+            print("Def")
+
         if data.find("fastly") != -1:
-            self.set_time_period_message(AudioUIApp.DEFAULT_TIMEOUT_MSG - 0.002)
+            self.set_time_period_message(def_val - 0.002)
         elif data.find("slowly") != -1:
-            self.set_time_period_message(AudioUIApp.DEFAULT_TIMEOUT_MSG + 0.002)
+            self.set_time_period_message(def_val + 0.002)
         elif data.find("normal") != -1:
-            self.set_time_period_message(AudioUIApp.DEFAULT_TIMEOUT_MSG)
+            self.set_time_period_message(def_val)
             
         pos_start = data.find("per:")
         pos_end = data.find(",")
@@ -331,19 +338,19 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 try:
                     data = self.stream.read(self.chunk)
                     # data, cvstate = audioop.ratecv(data, AudioUIApp.SOURCE_SAMP_WIDTH, self.chans, 
-                    #             self.source_sample_rate, self.target_sample_rate, cvstate)
+                                # self.source_sample_rate, self.target_sample_rate, cvstate)
                     
                     message = audioop.lin2lin(data, AudioUIApp.SOURCE_SAMP_WIDTH, AudioUIApp.TARGET_SAMP_WIDTH)
                     message = audioop.bias(message, AudioUIApp.TARGET_SAMP_WIDTH, AudioUIApp.UINT8_BIAS)
-                    print(len(message), number, message[:10], time.time())
                     self.socket.send(message)
-                    # self.stream_output.write(data)
+                    print(number, len(message), time.time())
+
                 except:
                     continue
 
-                # period = self.get_time_period_message()
+                period = self.get_time_period_message()
 
-                Event().wait(0.01)
+                Event().wait(period)
 
             else:
                 Event().wait(0.1)
