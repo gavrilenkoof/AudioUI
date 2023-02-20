@@ -56,6 +56,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.form_1 = pyaudio.paInt16 
         self.chans = 1 
         self.source_sample_rate = 44100
+        self.target_sample_rate = 8000
 
         # self.chunk = int(2048 * (44100 / 16000))
         self.chunk = 1024
@@ -209,9 +210,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 frames_per_buffer=self.chunk)
 
 
-        self.stream_output = self.audio.open(format=self.form_1, channels=self.chans,
-            rate=self.source_sample_rate, output=True,
-            frames_per_buffer=self.chunk)
+        # self.stream_output = self.audio.open(format=self.form_1, channels=self.chans,
+        #     rate=self.source_sample_rate, output=True,
+        #     frames_per_buffer=self.chunk)
 
         self.text_brows_info.append(f"Enable MIC")
         
@@ -329,7 +330,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 number += 1
                 try:
                     data = self.stream.read(self.chunk)
-                    # new_data, cvstate = audioop.ratecv(data, AudioUIApp.SOURCE_SAMP_WIDTH, self.chans, 
+                    # data, cvstate = audioop.ratecv(data, AudioUIApp.SOURCE_SAMP_WIDTH, self.chans, 
                     #             self.source_sample_rate, self.target_sample_rate, cvstate)
                     
                     message = audioop.lin2lin(data, AudioUIApp.SOURCE_SAMP_WIDTH, AudioUIApp.TARGET_SAMP_WIDTH)
