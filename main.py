@@ -333,7 +333,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
                 period = self.get_time_period_message()
 
-                Event().wait(0.012)
+                Event().wait(period)
 
             elif self.thr_client_tx_should_work is True and self.play_audio_mic is True and self.is_connect_mic is True and self.mode_play_file is False:
                 number += 1
@@ -345,14 +345,12 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     message = audioop.lin2lin(data, AudioUIApp.SOURCE_SAMP_WIDTH, AudioUIApp.TARGET_SAMP_WIDTH)
                     message = audioop.bias(message, AudioUIApp.TARGET_SAMP_WIDTH, AudioUIApp.UINT8_BIAS)
                     self.socket.send(message)
-                    print(number, len(message), time.time())
-
+                    # print(number, len(message), time.time())
                 except:
                     continue
 
                 # period = self.get_time_period_message()
-
-                # Event().wait(0.0001)
+                # Event().wait(period)
 
             else:
                 Event().wait(0.1)
