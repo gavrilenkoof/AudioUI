@@ -32,6 +32,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
     SOURCE_SAMP_WIDTH = 2
     TARGET_SAMP_WIDTH = 1
     UINT8_BIAS = 128
+    MSG_LEN_BYTES = 512
 
     def __init__(self, parent=None):
         super(AudioUIApp, self).__init__(parent)
@@ -60,7 +61,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.target_sample_rate = 8000
 
         # self.chunk = int(2048 * (44100 / 16000))
-        self.chunk = 1024
+        # self.chunk = 2816
+        self.chunk = int(AudioUIApp.MSG_LEN_BYTES * (self.source_sample_rate / self.target_sample_rate)) # for converting 44100 to 8000 format and payload = 512
         # self.chunk = 5645
 
         self.audio = pyaudio.PyAudio()
@@ -337,8 +339,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 number += 1
                 try:
                     data = self.stream.read(self.chunk)
-                    # data, cvstate = audioop.ratecv(data, AudioUIApp.SOURCE_SAMP_WIDTH, self.chans, 
-                                # self.source_sample_rate, self.target_sample_rate, cvstate)
+                    data, cvstate = audioop.ratecv(data, AudioUIApp.SOURCE_SAMP_WIDTH, self.chans, 
+                                self.source_sample_rate, self.target_sample_rate, cvstate)
                     
                     message = audioop.lin2lin(data, AudioUIApp.SOURCE_SAMP_WIDTH, AudioUIApp.TARGET_SAMP_WIDTH)
                     message = audioop.bias(message, AudioUIApp.TARGET_SAMP_WIDTH, AudioUIApp.UINT8_BIAS)
@@ -348,9 +350,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 except:
                     continue
 
-                period = self.get_time_period_message()
+                # period = self.get_time_period_message()
 
-                Event().wait(period)
+                # Event().wait(0.0001)
 
             else:
                 Event().wait(0.1)
