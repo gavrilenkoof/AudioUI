@@ -13,6 +13,7 @@ import pyaudio
 import audioop
 
 
+
 from scipy.io import wavfile
 import scipy.signal as sps
 import numpy as np
@@ -57,6 +58,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.play_wav_file = False
         self.play_audio_mic = False
         self.mode_play_file = True
+        self.file_name_url = ''
 
         
         self.period = AudioUIApp.DEFAULT_TIMEOUT_MSG
@@ -111,18 +113,21 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.close_file()
 
         try:
-            file_name_url, _ = QFileDialog.getOpenFileName(self)
-            self.logger.debug(f"Get file name: {file_name_url}")
+            self.file_name_url, _ = QFileDialog.getOpenFileName(self)
+            self.logger.debug(f"Get file name: {self.file_name_url}")
 
-            file_name = QUrl.fromLocalFile(file_name_url).fileName()
+
+            
+            file_name = QUrl.fromLocalFile(self.file_name_url).fileName()
 
             # self.text_brows_info.clear()
             self.text_brows_info.append(f"File name: {file_name}")
             self.text_brows_info.append(f"Convert to {self.target_sample_rate} Hz format")
 
             self.is_file_open = True
+            self.thr_file_preparing_should_work = True
 
-            self.parse_wav_file(file_name_url)
+            # self.parse_wav_file(file_name_url)
         except FileNotFoundError as ex:
             self.logger.error(f"File open error. {ex}")
             # self.text_brows_info.clear()
@@ -169,6 +174,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
     def close_file(self):
         self.logger.info("Close file")
+        self.is_file_open = False
+        self.data_audio_file = None
 
         if self.audio_file is None:
             pass
@@ -216,12 +223,16 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.thr_client_rx = Thread(target=self.rx_task, args=(), daemon=True)
         self.thr_client_tx = Thread(target=self.tx_task, args=(), daemon=True)
 
+        self.thr_file_preparing = Thread(target=self.file_preparing, args=(),daemon=True)
+
         self.thr_client_rx_should_work = False
         self.thr_client_tx_should_work = False
+        self.thr_file_preparing_should_work = False
         self.connection = False
 
         self.thr_client_rx.start()
         self.thr_client_tx.start()
+        self.thr_file_preparing.start()
 
     def connect_mic_handler(self):
         self.logger.info("Connecting to the MIC handler")
@@ -451,6 +462,18 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             else:                
                 Event().wait(0.001)
     
+    def file_preparing(self):
+      
+        while True:
+            if self.thr_file_preparing_should_work is True:
+                self.text_brows_info.append("Wait for the upload to complete")
+                self.parse_wav_file(self.file_name_url)
+                self.text_brows_info.append("Upload successful")
+                self.is_file_open = True
+                self.thr_file_preparing_should_work = False
+
+            Event().wait(0.1)
+
 
 def main():
     logging.basicConfig(level=logging.DEBUG, format='%(name)s:[%(levelname)s]: %(message)s')
