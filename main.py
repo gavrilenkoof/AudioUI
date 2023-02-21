@@ -163,8 +163,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         number_of_samples = round(len(data) * self.target_sample_rate / sample_rate)
         self.logger.debug(f"source sample rate: {sample_rate}")
         self.data_audio_file = sps.resample(data, number_of_samples)
-        self.data_audio_file = self.data_audio_file.astype(np.uint16)
- 
+        self.data_audio_file = self.data_audio_file.astype(np.int16)
         self.logger.debug(f"new sample rate: {self.target_sample_rate}")
 
 
@@ -408,31 +407,31 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
             elif self.thr_client_tx_should_work is True and self.play_audio_mic is True and self.is_connect_mic is True and self.mode_play_file is False:
                 try:
-                    data = self.stream.read(self.chunk)
-                    
-                    message = audioop.lin2lin(data, AudioUIApp.SOURCE_SAMP_WIDTH, AudioUIApp.TARGET_SAMP_WIDTH)
-                    message = audioop.bias(message, AudioUIApp.TARGET_SAMP_WIDTH, AudioUIApp.UINT8_BIAS)
-                    message = np.frombuffer(message, dtype=np.uint8)
-                    number_of_samples = round(len(message) * self.target_sample_rate / self.source_sample_rate)
-                    message = sps.resample(message, number_of_samples)
-                    message = message.astype(np.uint8)
-                    message = message[:].tobytes()
-                    print(type(message))
-                    self.socket.send(message)
-
-                    print(len(message))
-
                     # data = self.stream.read(self.chunk)
                     
                     # message = audioop.lin2lin(data, AudioUIApp.SOURCE_SAMP_WIDTH, AudioUIApp.TARGET_SAMP_WIDTH)
                     # message = audioop.bias(message, AudioUIApp.TARGET_SAMP_WIDTH, AudioUIApp.UINT8_BIAS)
-                    # # print(len(data))
-                    # message = np.frombuffer(data, dtype=np.int16)
+                    # message = np.frombuffer(message, dtype=np.uint8)
                     # number_of_samples = round(len(message) * self.target_sample_rate / self.source_sample_rate)
                     # message = sps.resample(message, number_of_samples)
-                    # message = message.astype(np.int16)
+                    # message = message.astype(np.uint8)
                     # message = message[:].tobytes()
+                    # print(type(message))
                     # self.socket.send(message)
+
+                    # print(len(message))
+
+                    data = self.stream.read(self.chunk)
+                    
+                    # message = audioop.lin2lin(data, AudioUIApp.SOURCE_SAMP_WIDTH, AudioUIApp.TARGET_SAMP_WIDTH)
+                    # message = audioop.bias(message, AudioUIApp.TARGET_SAMP_WIDTH, AudioUIApp.UINT8_BIAS)
+                    # print(len(data))
+                    message = np.frombuffer(data, dtype=np.int16)
+                    number_of_samples = round(len(message) * self.target_sample_rate / self.source_sample_rate)
+                    message = sps.resample(message, number_of_samples)
+                    message = message.astype(np.int16)
+                    message = message[:].tobytes()
+                    self.socket.send(message)
                     # print(len(message), message[:10])
 
                 except:
