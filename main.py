@@ -38,7 +38,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
     SOURCE_SAMP_WIDTH = 2
     TARGET_SAMP_WIDTH = 1
     UINT8_BIAS = 128
-    MSG_LEN_BYTES = 512
+    MSG_LEN_BYTES = 512 # 1024 for 16sign
+
 
     def __init__(self, parent=None):
         super(AudioUIApp, self).__init__(parent)
@@ -148,23 +149,23 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         #     # self.text_brows_info.clear()
         #     self.text_brows_info.append(f"File must have the format '.wav'.")
         #     self.is_file_open = False
-        self.number_frame = 0
-        sample_rate, data = wavfile.read(file_name_url)
-        number_of_samples = round(len(data) * self.target_sample_rate / sample_rate)
-        self.logger.debug(f"source sample rate: {sample_rate}")
-        self.data_audio_file = sps.resample(data, number_of_samples)
-        self.data_audio_file = self.data_audio_file.astype(np.uint8)
-        self.data_audio_file = self.data_audio_file[:].tobytes()
-        self.logger.debug(f"new sample rate: {self.target_sample_rate}")
-
         # self.number_frame = 0
         # sample_rate, data = wavfile.read(file_name_url)
         # number_of_samples = round(len(data) * self.target_sample_rate / sample_rate)
         # self.logger.debug(f"source sample rate: {sample_rate}")
         # self.data_audio_file = sps.resample(data, number_of_samples)
-        # self.data_audio_file = self.data_audio_file.astype(np.int16)
+        # self.data_audio_file = self.data_audio_file.astype(np.uint8)
         # self.data_audio_file = self.data_audio_file[:].tobytes()
         # self.logger.debug(f"new sample rate: {self.target_sample_rate}")
+
+        self.number_frame = 0
+        sample_rate, data = wavfile.read(file_name_url)
+        number_of_samples = round(len(data) * self.target_sample_rate / sample_rate)
+        self.logger.debug(f"source sample rate: {sample_rate}")
+        self.data_audio_file = sps.resample(data, number_of_samples)
+        self.data_audio_file = self.data_audio_file.astype(np.uint16)
+ 
+        self.logger.debug(f"new sample rate: {self.target_sample_rate}")
 
 
     def close_file(self):
@@ -364,12 +365,26 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 # print(len(message), period)
                 # Event().wait(period)
 
+                # message = self.data_audio_file[self.number_frame * AudioUIApp.MSG_LEN_BYTES: (self.number_frame + 1) * AudioUIApp.MSG_LEN_BYTES]
+                # self.number_frame += 1
+
+                # if self.number_frame >= int(len(self.data_audio_file) / AudioUIApp.MSG_LEN_BYTES):
+                #     self.number_frame = 0
+
+                # self.socket.send(message)
+                # period = self.get_time_period_message()
+                # print(len(message), period)
+                # Event().wait(period)
+
+
+
+
                 message = self.data_audio_file[self.number_frame * AudioUIApp.MSG_LEN_BYTES: (self.number_frame + 1) * AudioUIApp.MSG_LEN_BYTES]
                 self.number_frame += 1
 
                 if self.number_frame >= int(len(self.data_audio_file) / AudioUIApp.MSG_LEN_BYTES):
                     self.number_frame = 0
-
+                    
                 self.socket.send(message)
                 period = self.get_time_period_message()
                 print(len(message), period)
@@ -402,6 +417,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     message = sps.resample(message, number_of_samples)
                     message = message.astype(np.uint8)
                     message = message[:].tobytes()
+                    print(type(message))
                     self.socket.send(message)
 
                     print(len(message))
