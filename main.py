@@ -74,6 +74,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         self.audio = pyaudio.PyAudio()
         self.stream = None
+        self.need_convert_to_int16 = False
         # self.ratio = self.target_sample_rate / self.source_sample_rate
         # self.stream_output = None
         
@@ -157,13 +158,16 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         # self.data_audio_file = self.data_audio_file.astype(np.uint8)
         # self.data_audio_file = self.data_audio_file[:].tobytes()
         # self.logger.debug(f"new sample rate: {self.target_sample_rate}")
-
+        self.need_convert_to_int16 = False
         self.number_frame = 0
         sample_rate, data = wavfile.read(file_name_url)
         
         if len(data.shape) >= 2:
             data = data.reshape((data.shape[0] * data.shape[1], 1))
             data = np.delete(data, np.arange(1, data.shape[0], 2))
+
+        if data.dtype == np.uint8:
+            self.need_convert_to_int16 = True
 
         number_of_samples = round(len(data) * self.target_sample_rate / sample_rate)
         self.logger.debug(f"source sample rate: {sample_rate}")
@@ -264,6 +268,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             self.close_connection()
             self.text_brows_info.append(f"Bad address format!")
 
+    @staticmethod
+    def map_int(x, in_min=0, in_max=255, out_min=-32768, out_max=32767):
+        return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 
     def play_wav_file_handler(self):
         self.logger.info("Play WAV file handler")
@@ -388,6 +395,10 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
                 if self.number_frame >= int(len(self.data_audio_file) / AudioUIApp.MSG_LEN_BYTES):
                     self.number_frame = 0
+
+                if self.need_convert_to_int16:
+                    message = AudioUIApp.map_int(message)
+                    message = message.astype(np.int16)
                     
                 self.socket.send(message)
                 period = self.get_time_period_message()
