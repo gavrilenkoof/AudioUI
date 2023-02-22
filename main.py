@@ -340,17 +340,37 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             def_val = AudioUIApp.DEFAULT_TIMEOUT_MSG
             # print("Def")
 
-        if data.find("fastly") != -1:
-            self.set_time_period_message(def_val - AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA)
-        elif data.find("slowly") != -1:
-            self.set_time_period_message(def_val + AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA)
-        elif data.find("normal") != -1:
-            self.set_time_period_message(def_val)
+        # if data.find("fastly") != -1:
+        #     self.set_time_period_message(def_val - AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA)
+        # elif data.find("slowly") != -1:
+        #     self.set_time_period_message(def_val + AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA)
+        # elif data.find("normal") != -1:
+        #     self.set_time_period_message(def_val)
             
         pos_start = data.find("per:")
         pos_end = data.find(",")
+        val = 50
         if pos_start != -1 and pos_end != -1:
-            print(data[pos_start:pos_end], self.period)
+            val = int(data[pos_start + 4:pos_end])
+        
+        if val >= 0 and val <= 20:
+            self.set_time_period_message(def_val - 3 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA)
+        elif val >= 20 and val < 30:
+            self.set_time_period_message(def_val - 2 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA)
+        elif val >= 30 and val < 40:
+            self.set_time_period_message(def_val - AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA)
+        elif val >= 40 and val < 60:
+            self.set_time_period_message(def_val)
+        elif val >= 60 and val < 70:
+            self.set_time_period_message(def_val + AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA)
+        elif val >= 70 and val < 80:
+            self.set_time_period_message(def_val + 2 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA)
+        elif val >= 80:
+            self.set_time_period_message(def_val + 3 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA)
+
+            
+        print(f"pers: {val}, period: {self.get_time_period_message()}")
+
  
     def tx_task(self):
         
@@ -370,7 +390,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     
                 self.socket.send(message)
                 period = self.get_time_period_message()
-                print(len(message), period)
+                
                 Event().wait(period)
 
 
