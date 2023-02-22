@@ -178,7 +178,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             self.data_audio_file = self.data_audio_file.astype(np.int16)
             self.logger.debug(f"new sample rate: {self.target_sample_rate}")
         else:
-            self.data_audio_file = data
+            self.data_audio_file = data.astype(np.int16)
 
 
     def close_file(self):
