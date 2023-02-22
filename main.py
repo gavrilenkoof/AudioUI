@@ -160,6 +160,11 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         self.number_frame = 0
         sample_rate, data = wavfile.read(file_name_url)
+        
+        if len(data.shape) >= 2:
+            data = data.reshape((data.shape[0] * data.shape[1], 1))
+            data = np.delete(data, np.arange(1, data.shape[0], 2))
+
         number_of_samples = round(len(data) * self.target_sample_rate / sample_rate)
         self.logger.debug(f"source sample rate: {sample_rate}")
         self.data_audio_file = sps.resample(data, number_of_samples)
