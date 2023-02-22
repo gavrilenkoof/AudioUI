@@ -120,7 +120,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
             # self.text_brows_info.clear()
             self.text_brows_info.append(f"File name: {file_name}")
-            self.text_brows_info.append(f"Convert to {self.target_sample_rate} Hz format")
 
             self.is_file_open = True
 
@@ -167,13 +166,19 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             data = np.delete(data, np.arange(1, data.shape[0], 2))
 
         if data.dtype == np.uint8:
+            self.logger.warning("Convert from uint8 to int16 format")
+            self.text_brows_info.append(f"Convert to sample width 2")
             self.need_convert_to_int16 = True
 
-        number_of_samples = round(len(data) * self.target_sample_rate / sample_rate)
         self.logger.debug(f"source sample rate: {sample_rate}")
-        self.data_audio_file = sps.resample(data, number_of_samples)
-        self.data_audio_file = self.data_audio_file.astype(np.int16)
-        self.logger.debug(f"new sample rate: {self.target_sample_rate}")
+        if sample_rate != self.target_sample_rate:
+            self.text_brows_info.append(f"Convert to {self.target_sample_rate} Hz format")
+            number_of_samples = round(len(data) * self.target_sample_rate / sample_rate)
+            self.data_audio_file = sps.resample(data, number_of_samples)
+            self.data_audio_file = self.data_audio_file.astype(np.int16)
+            self.logger.debug(f"new sample rate: {self.target_sample_rate}")
+        else:
+            self.data_audio_file = data
 
 
     def close_file(self):
@@ -320,7 +325,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
     def set_time_period_message(self, value):
         self.period = value
 
-    def parse_data(self, data):
+    def parse_answer_server(self, data):
         data = data.decode("utf-8")
 
         def_val = AudioUIApp.DEFAULT_TIMEOUT_MSG
@@ -349,46 +354,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
  
     def tx_task(self):
         
-        cvstate_mic = None
-        cvstate_audio = None
-        number = 0
-
         while True:
             if self.thr_client_tx_should_work is True and self.play_wav_file is True and self.is_file_open is True and self.mode_play_file is True:
                 
-                # wave_bytes = self.audio_file.readframes(512)
-                # message = ""
-                # for i in range(0, len(wave_bytes)):
-                #     message += hex(wave_bytes[i])[2:]
-                # message = message.encode("utf-8")
-                # # print(len(message))
-                # self.socket.send(message)
-                # period = self.get_time_period_message()
-                # Event().wait(period)
-                
-                # read_bytes = int(1024 * (self.source_sample_rate / self.target_sample_rate))
-                # # wave_bytes = self.audio_file.readframes(1024)
-                # wave_bytes = self.audio_file.readframes(read_bytes)
-                # message, cvstate_audio = audioop.ratecv(wave_bytes, 1, 1, self.source_sample_rate, self.target_sample_rate, cvstate_audio, 10, 10)
-                # # message = wave_bytes
-                # self.socket.send(message)
-                # period = self.get_time_period_message()
-                # print(len(message), period)
-                # Event().wait(period)
-
-                # message = self.data_audio_file[self.number_frame * AudioUIApp.MSG_LEN_BYTES: (self.number_frame + 1) * AudioUIApp.MSG_LEN_BYTES]
-                # self.number_frame += 1
-
-                # if self.number_frame >= int(len(self.data_audio_file) / AudioUIApp.MSG_LEN_BYTES):
-                #     self.number_frame = 0
-
-                # self.socket.send(message)
-                # period = self.get_time_period_message()
-                # print(len(message), period)
-                # Event().wait(period)
-
-
-
 
                 message = self.data_audio_file[self.number_frame * AudioUIApp.MSG_LEN_BYTES: (self.number_frame + 1) * AudioUIApp.MSG_LEN_BYTES]
                 self.number_frame += 1
@@ -405,37 +373,11 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 print(len(message), period)
                 Event().wait(period)
 
-                # message = self.data_audio_file[self.number_frame * AudioUIApp.MSG_LEN_BYTES: (self.number_frame + 1) * AudioUIApp.MSG_LEN_BYTES]
-                # self.number_frame += 1
-
-                # # print(message[0], message[1])
-
-                # if self.number_frame >= int(len(self.data_audio_file) / AudioUIApp.MSG_LEN_BYTES):
-                #     self.number_frame = 0
-
-                # self.socket.send(message)
-                # period = self.get_time_period_message()
-                # print(len(message), period)
-                # Event().wait(period)
-
-
 
 
             elif self.thr_client_tx_should_work is True and self.play_audio_mic is True and self.is_connect_mic is True and self.mode_play_file is False:
                 try:
-                    # data = self.stream.read(self.chunk)
-                    
-                    # message = audioop.lin2lin(data, AudioUIApp.SOURCE_SAMP_WIDTH, AudioUIApp.TARGET_SAMP_WIDTH)
-                    # message = audioop.bias(message, AudioUIApp.TARGET_SAMP_WIDTH, AudioUIApp.UINT8_BIAS)
-                    # message = np.frombuffer(message, dtype=np.uint8)
-                    # number_of_samples = round(len(message) * self.target_sample_rate / self.source_sample_rate)
-                    # message = sps.resample(message, number_of_samples)
-                    # message = message.astype(np.uint8)
-                    # message = message[:].tobytes()
-                    # print(type(message))
-                    # self.socket.send(message)
 
-                    # print(len(message))
 
                     data = self.stream.read(self.chunk)
                     
@@ -469,7 +411,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     recv_data = self.socket.recv(64)
                     if recv_data == "":
                         continue
-                    self.parse_data(recv_data)
+                    self.parse_answer_server(recv_data)
 
                 except socket.timeout as ex:
                     continue
