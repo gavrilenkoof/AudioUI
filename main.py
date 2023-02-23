@@ -135,6 +135,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         self.logger.info("Parse wav file")
 
+
         self.data_audio_file = None
         self.need_convert_to_int16 = False
         self.number_frame = 0
@@ -193,6 +194,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
     def close_file(self):
         self.logger.info("Close file")
+        self.is_file_open = False
 
         if self.audio_file is None:
             pass
