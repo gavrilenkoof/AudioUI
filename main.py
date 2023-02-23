@@ -113,6 +113,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.close_file()
 
         try:
+            self.play_wav_file = False
+            self.btn_play_wav_file.setText("Play file")
+
             file_name_url, _ = QFileDialog.getOpenFileName(self)
             self.logger.debug(f"Get file name: {file_name_url}")
 
@@ -120,10 +123,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
             # self.text_brows_info.clear()
             self.text_brows_info.append(f"File name: {file_name}")
-
+            self.parse_wav_file(file_name_url)
             self.is_file_open = True
 
-            self.parse_wav_file(file_name_url)
         except FileNotFoundError as ex:
             self.logger.error(f"File open error. {ex}")
             # self.text_brows_info.clear()
@@ -135,28 +137,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         self.logger.info("Parse wav file")
 
-        # try:
-        #     self.audio_file = wave.open(file_name_url, 'r')
-        #     number_frames = self.audio_file.getnframes()
-        #     frame_rate = self.audio_file.getframerate()
-        #     # stat = self.audio_file.getparams()
-        #     self.logger.debug(f"number_frames: {number_frames}")
-        #     self.logger.debug(f"frame_rate: {frame_rate}")
-
-        #     # self.text_brows_info.append(f"frame rate: {frame_rate} Hz")
-        # except wave.Error as ex:
-        #     self.logger.error(f"Parse WAV file error: {ex}")
-        #     # self.text_brows_info.clear()
-        #     self.text_brows_info.append(f"File must have the format '.wav'.")
-        #     self.is_file_open = False
-        # self.number_frame = 0
-        # sample_rate, data = wavfile.read(file_name_url)
-        # number_of_samples = round(len(data) * self.target_sample_rate / sample_rate)
-        # self.logger.debug(f"source sample rate: {sample_rate}")
-        # self.data_audio_file = sps.resample(data, number_of_samples)
-        # self.data_audio_file = self.data_audio_file.astype(np.uint8)
-        # self.data_audio_file = self.data_audio_file[:].tobytes()
-        # self.logger.debug(f"new sample rate: {self.target_sample_rate}")
+        self.data_audio_file = None
         self.need_convert_to_int16 = False
         self.number_frame = 0
         sample_rate, data = wavfile.read(file_name_url)
@@ -220,9 +201,13 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         if self.mode_play_file is True:
             self.btn_mode_choice.setText("File")
             self.text_brows_info.append(f"File playback mode")
+            self.play_audio_mic = False
+            self.disable_mic()
         else:
             self.btn_mode_choice.setText("MIC")
             self.text_brows_info.append(f"MIC audio mode")
+            self.play_audio_mic = False
+            self.close_file()
 
 
     def thread_client_configurations(self):
@@ -390,6 +375,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     
                 self.socket.send(message)
                 period = self.get_time_period_message()
+                message = None
                 
                 Event().wait(period)
 
@@ -410,6 +396,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     message = message.astype(np.int16)
                     message = message[:].tobytes()
                     self.socket.send(message)
+                    message = None
                     # print(len(message), message[:10])
 
                 except:
