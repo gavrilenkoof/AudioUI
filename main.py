@@ -165,13 +165,13 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         
 
-        # max_val = np.max(np.abs(self.data_audio_file))
-        # if max_val != 0:
-        #     target_max_val = (32767 * AudioUIApp.db_to_float(-2.0))
-        #     self.data_audio_file = AudioUIApp.normalize(self.data_audio_file, max_val, target_max_val)
-        #     # self.data_audio_file = AudioUIApp.butter_lowpass_filter(data=self.data_audio_file,
-        #                             # cutoff=6000, sample_rate=self.target_sample_rate, order=5)
-        #     self.data_audio_file = self.data_audio_file.astype(np.int16)
+        max_val = np.max(np.abs(self.data_audio_file))
+        if max_val != 0:
+            target_max_val = (32767 * AudioUIApp.db_to_float(-2.0))
+            self.data_audio_file = AudioUIApp.normalize(self.data_audio_file, max_val, target_max_val)
+            # self.data_audio_file = AudioUIApp.butter_lowpass_filter(data=self.data_audio_file,
+                                    # cutoff=6000, sample_rate=self.target_sample_rate, order=5)
+            self.data_audio_file = self.data_audio_file.astype(np.int16)
 
     
 
@@ -411,7 +411,14 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     message = np.frombuffer(data, dtype=np.int16)
                     number_of_samples = round(len(message) * self.target_sample_rate / self.source_sample_rate)
                     # message = sps.resample(message, number_of_samples)
-                    message = sps.resample(message, number_of_samples, window="")
+                    message = sps.resample(message, number_of_samples, window="triang")
+
+                    # normalize
+                    max_val = np.max(np.abs(message))
+                    if max_val != 0:
+                        target_max_val = (32767 * AudioUIApp.db_to_float(-2.0))
+                        message = AudioUIApp.normalize(message, max_val, target_max_val)
+
                     message = message.astype(np.int16)
                     message = message[:].tobytes()
                     self.socket.send(message)
