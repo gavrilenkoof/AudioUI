@@ -159,7 +159,22 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         else:
             self.data_audio_file = data.astype(np.int16)
 
-        
+
+        max_val = np.max(np.abs(self.data_audio_file))
+        if max_val != 0:
+            target_max_val = (32767 * AudioUIApp.db_to_float(-1.0))
+            self.data_audio_file = AudioUIApp.normalize(self.data_audio_file, max_val, target_max_val)
+            self.data_audio_file = self.data_audio_file.astype(np.int16)
+
+    
+
+    @staticmethod
+    def normalize(data, max_val_input, max_range_val):
+        return (data / max_val_input) * max_range_val 
+
+    @staticmethod
+    def db_to_float(headroom=0.1):
+        return 10 ** (headroom / 20)
 
 
     def close_file(self):
@@ -260,9 +275,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
     def map_int(x, in_min=0, in_max=255, out_min=-32768, out_max=32767):
         return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 
-    @staticmethod
-    def normalize(data, max_val_input, max_range_val):
-        return (data / max_val_input) * max_range_val
 
     def play_wav_file_handler(self):
         self.logger.info("Play WAV file handler")
@@ -327,12 +339,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             def_val = AudioUIApp.DEFAULT_TIMEOUT_MSG
             # print("Def")
 
-        # if data.find("fastly") != -1:
-        #     self.set_time_period_message(def_val - AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA)
-        # elif data.find("slowly") != -1:
-        #     self.set_time_period_message(def_val + AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA)
-        # elif data.find("normal") != -1:
-        #     self.set_time_period_message(def_val)
             
         pos_start = data.find("per:")
         pos_end = data.find(",")
@@ -374,12 +380,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 if self.need_convert_to_int16:
                     message = AudioUIApp.map_int(message)
                     message = message.astype(np.int16)
-
-
-                # normalize output data
-                max_val = np.max(np.abs(message))
-                message = AudioUIApp.normalize(message, max_val, 32767)
-                message = message.astype(np.int16)
 
 
                     
