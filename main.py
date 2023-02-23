@@ -10,7 +10,6 @@ from threading import Thread, Event
 import socket
 import time
 import pyaudio
-import audioop
 
 
 from scipy.io import wavfile
@@ -160,6 +159,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         else:
             self.data_audio_file = data.astype(np.int16)
 
+        
+
 
     def close_file(self):
         self.logger.info("Close file")
@@ -258,6 +259,10 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
     @staticmethod
     def map_int(x, in_min=0, in_max=255, out_min=-32768, out_max=32767):
         return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
+
+    @staticmethod
+    def normalize(data, max_val_input, max_range_val):
+        return (data / max_val_input) * max_range_val
 
     def play_wav_file_handler(self):
         self.logger.info("Play WAV file handler")
@@ -369,6 +374,14 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 if self.need_convert_to_int16:
                     message = AudioUIApp.map_int(message)
                     message = message.astype(np.int16)
+
+
+                # normalize output data
+                max_val = np.max(np.abs(message))
+                message = AudioUIApp.normalize(message, max_val, 32767)
+                message = message.astype(np.int16)
+
+
                     
                 self.socket.send(message)
                 period = self.get_time_period_message()
