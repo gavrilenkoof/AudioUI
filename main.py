@@ -164,6 +164,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         if max_val != 0:
             target_max_val = (32767 * AudioUIApp.db_to_float(-1.0))
             self.data_audio_file = AudioUIApp.normalize(self.data_audio_file, max_val, target_max_val)
+            self.data_audio_file = AudioUIApp.butter_lowpass_filter(data=self.data_audio_file,
+                                    cutoff=6000, sample_rate=self.target_sample_rate, order=5)
             self.data_audio_file = self.data_audio_file.astype(np.int16)
 
     
@@ -175,6 +177,15 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
     @staticmethod
     def db_to_float(headroom=0.1):
         return 10 ** (headroom / 20)
+
+    @staticmethod
+    def butter_lowpass(cutoff, sample_rate, order=5):
+        return sps.butter(order, cutoff, fs=sample_rate, btype="lowpass", analog=False)
+
+    @staticmethod
+    def butter_lowpass_filter(data, cutoff, sample_rate, order=5):
+        b, a = AudioUIApp.butter_lowpass(cutoff=cutoff, sample_rate=sample_rate, order=order)
+        return sps.lfilter(b, a, data)
 
 
     def close_file(self):
