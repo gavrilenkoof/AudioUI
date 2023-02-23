@@ -147,7 +147,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         if data.dtype == np.uint8:
             self.logger.warning("Convert from uint8 to int16 format")
             self.text_brows_info.append(f"Convert to sample width 2")
-            self.need_convert_to_int16 = True
+            data = data.astype(np.int16)
+            data = AudioUIApp.map_int(data)
+            
 
         self.logger.debug(f"source sample rate: {sample_rate}")
         if sample_rate != self.target_sample_rate:
@@ -159,14 +161,15 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         else:
             self.data_audio_file = data.astype(np.int16)
 
+        
 
-        max_val = np.max(np.abs(self.data_audio_file))
-        if max_val != 0:
-            target_max_val = (32767 * AudioUIApp.db_to_float(-1.0))
-            self.data_audio_file = AudioUIApp.normalize(self.data_audio_file, max_val, target_max_val)
-            self.data_audio_file = AudioUIApp.butter_lowpass_filter(data=self.data_audio_file,
-                                    cutoff=6000, sample_rate=self.target_sample_rate, order=5)
-            self.data_audio_file = self.data_audio_file.astype(np.int16)
+        # max_val = np.max(np.abs(self.data_audio_file))
+        # if max_val != 0:
+        #     target_max_val = (32767 * AudioUIApp.db_to_float(-2.0))
+        #     self.data_audio_file = AudioUIApp.normalize(self.data_audio_file, max_val, target_max_val)
+        #     # self.data_audio_file = AudioUIApp.butter_lowpass_filter(data=self.data_audio_file,
+        #                             # cutoff=6000, sample_rate=self.target_sample_rate, order=5)
+        #     self.data_audio_file = self.data_audio_file.astype(np.int16)
 
     
 
@@ -178,14 +181,14 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
     def db_to_float(headroom=0.1):
         return 10 ** (headroom / 20)
 
-    @staticmethod
-    def butter_lowpass(cutoff, sample_rate, order=5):
-        return sps.butter(order, cutoff, fs=sample_rate, btype="lowpass", analog=False)
+    # @staticmethod
+    # def butter_lowpass(cutoff, sample_rate, order=5):
+    #     return sps.butter(order, cutoff, fs=sample_rate, btype="lowpass", analog=False)
 
-    @staticmethod
-    def butter_lowpass_filter(data, cutoff, sample_rate, order=5):
-        b, a = AudioUIApp.butter_lowpass(cutoff=cutoff, sample_rate=sample_rate, order=order)
-        return sps.lfilter(b, a, data)
+    # @staticmethod
+    # def butter_lowpass_filter(data, cutoff, sample_rate, order=5):
+    #     b, a = AudioUIApp.butter_lowpass(cutoff=cutoff, sample_rate=sample_rate, order=order)
+    #     return sps.lfilter(b, a, data)
 
 
     def close_file(self):
@@ -387,10 +390,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
                 if self.number_frame >= int(len(self.data_audio_file) / AudioUIApp.MSG_LEN_BYTES):
                     self.number_frame = 0
-
-                if self.need_convert_to_int16:
-                    message = AudioUIApp.map_int(message)
-                    message = message.astype(np.int16)
 
 
                     
