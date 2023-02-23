@@ -156,7 +156,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         if sample_rate != self.target_sample_rate:
             self.text_brows_info.append(f"Convert to {self.target_sample_rate} Hz format")
             number_of_samples = round(len(data) * self.target_sample_rate / sample_rate)
-            self.data_audio_file = sps.resample(data, number_of_samples)
+            self.data_audio_file = sps.resample(data, number_of_samples, window="blackmanharris")
             self.data_audio_file = self.data_audio_file.astype(np.int16)
             self.logger.debug(f"new sample rate: {self.target_sample_rate}")
         else:
@@ -394,7 +394,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     self.number_frame = 0
 
 
-                    
                 self.socket.send(message)
                 period = self.get_time_period_message()
                 message = None
@@ -409,9 +408,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
                     data = self.stream.read(self.chunk)
                     
-                    # message = audioop.lin2lin(data, AudioUIApp.SOURCE_SAMP_WIDTH, AudioUIApp.TARGET_SAMP_WIDTH)
-                    # message = audioop.bias(message, AudioUIApp.TARGET_SAMP_WIDTH, AudioUIApp.UINT8_BIAS)
-                    # print(len(data))
                     message = np.frombuffer(data, dtype=np.int16)
                     number_of_samples = round(len(message) * self.target_sample_rate / self.source_sample_rate)
                     message = sps.resample(message, number_of_samples)
@@ -420,7 +416,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     self.socket.send(message)
                     message = None
                     print("MIC")
-                    # print(len(message), message[:10])
+
 
                 except:
                     continue
