@@ -113,8 +113,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.close_file()
 
         try:
-            self.play_wav_file = False
-            self.btn_play_wav_file.setText("Play file")
+
 
             file_name_url, _ = QFileDialog.getOpenFileName(self)
             self.logger.debug(f"Get file name: {file_name_url}")
@@ -201,13 +200,11 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         if self.mode_play_file is True:
             self.btn_mode_choice.setText("File")
             self.text_brows_info.append(f"File playback mode")
-            self.play_audio_mic = False
-            self.disable_mic()
+
         else:
             self.btn_mode_choice.setText("MIC")
             self.text_brows_info.append(f"MIC audio mode")
-            self.play_audio_mic = False
-            self.close_file()
+
 
 
     def thread_client_configurations(self):
@@ -378,7 +375,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 message = None
                 
                 Event().wait(period)
-
+                print("Audio")
 
 
             elif self.thr_client_tx_should_work is True and self.play_audio_mic is True and self.is_connect_mic is True and self.mode_play_file is False:
@@ -397,6 +394,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     message = message[:].tobytes()
                     self.socket.send(message)
                     message = None
+                    print("MIC")
                     # print(len(message), message[:10])
 
                 except:
