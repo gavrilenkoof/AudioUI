@@ -157,7 +157,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         # self.text_brows_info.append(f"Convert to {self.target_sample_rate} Hz format")
         self.text_brows_info.append(f"Preparing file...")
         number_of_samples = round(len(data) * self.target_sample_rate / sample_rate)
-        self.data_audio_file = sps.resample(data, number_of_samples, window="blackmanharris")
+        self.data_audio_file = sps.resample(data, number_of_samples, window="triang")
         # self.data_audio_file = self.data_audio_file.astype(np.int16)
         self.logger.debug(f"new sample rate: {self.target_sample_rate}")
         # else:
@@ -171,7 +171,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             self.data_audio_file = AudioUIApp.normalize(self.data_audio_file, max_val, target_max_val)
             # self.data_audio_file = AudioUIApp.butter_lowpass_filter(data=self.data_audio_file,
                                     # cutoff=6000, sample_rate=self.target_sample_rate, order=5)
-                                    
+
         self.data_audio_file = self.data_audio_file.astype(np.int16)
 
     
@@ -415,13 +415,13 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     message = sps.resample(message, number_of_samples, window="triang")
 
                     # normalize
-                    max_val = np.max(np.abs(message))
-                    if max_val != 0:
-                        target_max_val = (32767 * AudioUIApp.db_to_float(-2.0))
-                        message = AudioUIApp.normalize(message, max_val, target_max_val)
+                    # max_val = np.max(np.abs(message))
+                    # if max_val != 0:
+                    #     target_max_val = (32767 * AudioUIApp.db_to_float(-2.0))
+                    #     message = AudioUIApp.normalize(message, max_val, target_max_val)
 
                     message = message.astype(np.int16)
-                    message = message[:].tobytes()
+                    message = message.tobytes()
                     self.socket.send(message)
                     message = None
                     print("MIC")
