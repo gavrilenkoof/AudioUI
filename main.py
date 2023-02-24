@@ -310,16 +310,16 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
     def play_audio_mic_handler(self):
         self.logger.info("Play audio MIC handler")
 
-        self.play_audio_mic = not self.play_audio_mic
-
-        if self.play_audio_mic:
-            self.stream = self.audio.open(format=self.form_1, rate=self.source_sample_rate, 
-                channels=self.chans, input = True,
+        if self.play_audio_mic == AudioUIApp.PLAY_MIC_STOP:
+            self.play_audio_mic = AudioUIApp.PLAY_MIC_PLAYING
+            self.stream = self.audio.open(format=self.form_1, rate=self.source_sample_rate,
+                channels=self.chans, input=True,
                 frames_per_buffer=self.chunk)
             self.logger.debug("Recording")
             self.btn_play_mic.setText("Stop")
             self.text_brows_info.append("Microphone recording")
-        else:
+        elif self.play_audio_mic == AudioUIApp.PLAY_MIC_PLAYING:
+            self.play_audio_mic = AudioUIApp.PLAY_MIC_STOP
             self.disable_mic()
             self.logger.debug("Stop recording")
             self.btn_play_mic.setText("Record")
@@ -383,14 +383,18 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             if self.thr_client_tx_should_work is True and self.play_wav_file == AudioUIApp.PLAY_WAV_FILE_PLAYING and \
                 self.is_file_open is True and self.current_mode == AudioUIApp.CURRENT_MODE_FILE:
                 
+                message = None
+
                 message = self.data_audio_file[self.number_frame * AudioUIApp.MSG_LEN_BYTES: (self.number_frame + 1) * AudioUIApp.MSG_LEN_BYTES]
                 self.number_frame += 1
 
                 if self.number_frame >= int(len(self.data_audio_file) / AudioUIApp.MSG_LEN_BYTES):
                     self.number_frame = 0
 
-
-                self.socket.send(message)
+                try:
+                    self.socket.send(message)
+                except:
+                    pass
                 period = self.get_time_period_message()
                 message = None
                 
@@ -398,10 +402,11 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 # print("Audio")
 
 
-            elif self.thr_client_tx_should_work is True and self.play_audio_mic is True and self.is_connect_mic is True and self.current_mode == AudioUIApp.CURRENT_MODE_MIC:
+            elif self.thr_client_tx_should_work is True and self.play_audio_mic == AudioUIApp.PLAY_MIC_PLAYING and \
+                 self.is_connect_mic is True and self.current_mode == AudioUIApp.CURRENT_MODE_MIC:
                 try:
 
-
+                    message = None
                     data = self.stream.read(self.chunk)
                     message = np.frombuffer(data, dtype=np.int16)
                     number_of_samples = round(len(message) * self.target_sample_rate / self.source_sample_rate)
@@ -429,6 +434,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
             else:
                 Event().wait(0.1)
+
 
 
 
