@@ -266,7 +266,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         try:
             self.close_connection()
             tcp_ip, tcp_port = self.get_ip_address()
-            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM | socket.SOCK_NONBLOCK)
             self.socket.settimeout(1.5)
             self.socket.connect((tcp_ip, tcp_port))
             self.thr_client_tx_should_work = True
@@ -374,10 +374,12 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             self.set_time_period_message(def_val + 3 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA)
 
             
-        print(f"pers: {val}, period: {self.get_time_period_message()}")
+        # print(f"pers: {val}, period: {self.get_time_period_message()}")
 
  
     def tx_task(self):
+
+        # first_message = True
         
         while True:
             if self.thr_client_tx_should_work is True and self.play_wav_file == AudioUIApp.PLAY_WAV_FILE_PLAYING and \
@@ -391,15 +393,18 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 if self.number_frame >= int(len(self.data_audio_file) / AudioUIApp.MSG_LEN_BYTES):
                     self.number_frame = 0
 
-                try:
-                    self.socket.send(message)
-                except:
-                    pass
+
+                self.socket.send(message)
+
                 period = self.get_time_period_message()
                 message = None
-                
+
+                # if first_message is True:
+                #     period = 0.5
+                #     first_message = False
+
                 Event().wait(period)
-                # print("Audio")
+
 
 
             elif self.thr_client_tx_should_work is True and self.play_audio_mic == AudioUIApp.PLAY_MIC_PLAYING and \
@@ -413,17 +418,10 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     # message = sps.resample(message, number_of_samples)
                     message = sps.resample(message, number_of_samples, window="bohman")
 
-                    # normalize
-                    # max_val = np.max(np.abs(message))
-                    # if max_val != 0:
-                    #     target_max_val = (32767 * AudioUIApp.db_to_float(-2.0))
-                    #     message = AudioUIApp.normalize(message, max_val, target_max_val)
-
                     message = message.astype(np.int16)
                     message = message.tobytes()
-                    self.socket.send(message)
+                    self.socket.sendall(message)
                     message = None
-                    # print("MIC")
 
 
                 except:
@@ -433,9 +431,17 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 Event().wait(0.005)
 
             else:
+
+                try:
+                    self.socket.send("0".encode("utf-8"))
+                except socket.timeout as ex:
+                    pass
+                except AttributeError as ex:
+                    pass
+
                 Event().wait(0.1)
 
-
+            
 
 
     def rx_task(self):
