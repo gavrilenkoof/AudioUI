@@ -332,30 +332,6 @@
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_3">
           <item>
-           <widget class="QToolButton" name="btn_connect_mic">
-            <property name="minimumSize">
-             <size>
-              <width>65</width>
-              <height>31</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>65</width>
-              <height>31</height>
-             </size>
-            </property>
-            <property name="font">
-             <font>
-              <pointsize>9</pointsize>
-             </font>
-            </property>
-            <property name="text">
-             <string>Connect</string>
-            </property>
-           </widget>
-          </item>
-          <item>
            <widget class="QToolButton" name="btn_play_mic">
             <property name="minimumSize">
              <size>
@@ -375,7 +351,7 @@
              </font>
             </property>
             <property name="text">
-             <string>Play mic</string>
+             <string>Record</string>
             </property>
            </widget>
           </item>

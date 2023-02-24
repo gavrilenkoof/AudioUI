@@ -89,7 +89,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.btn_load_wav_file.clicked.connect(self.load_wav_file_handler)
         self.btn_connect_to_server.clicked.connect(self.connect_server_handler)
         self.btn_mode_choice.clicked.connect(self.change_mode_handler)
-        self.btn_connect_mic.clicked.connect(self.connect_mic_handler)
+        # self.btn_connect_mic.clicked.connect(self.connect_mic_handler)
         
         self.btn_play_wav_file.clicked.connect(self.play_wav_file_handler)
         self.btn_play_mic.clicked.connect(self.play_audio_mic_handler)
@@ -100,7 +100,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.btn_play_mic.setText("Record")
         self.edit_ip_address.setText("192.168.100.10:7")
 
-        self.btn_connect_mic.setText("Enable")
+        # self.btn_connect_mic.setText("Enable")
 
     def closeEvent(self, event):
         self.logger.info("Close main window")
@@ -113,21 +113,26 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.logger.info("Load wav file handler")
 
         # close prev file
+        # self.close_file()
+
+        # try:
+
+        #     self.file_name_url, _ = QFileDialog.getOpenFileName(self)
+        #     self.logger.debug(f"Get file name: {self.file_name_url}")
+
+        #     self.file_name = QUrl.fromLocalFile(self.file_name_url).fileName()
+
+        #     self.thr_file_preparing_should_work = True
+
+        # except FileNotFoundError as ex:
+        #     self.logger.error(f"File open error. {ex}")
+        #     self.text_brows_info.append(f"File not found!")
+        #     self.is_file_open = False
         self.close_file()
-
-        try:
-
-            self.file_name_url, _ = QFileDialog.getOpenFileName(self)
-            self.logger.debug(f"Get file name: {self.file_name_url}")
-
-            self.file_name = QUrl.fromLocalFile(self.file_name_url).fileName()
-
-            self.thr_file_preparing_should_work = True
-
-        except FileNotFoundError as ex:
-            self.logger.error(f"File open error. {ex}")
-            self.text_brows_info.append(f"File not found!")
-            self.is_file_open = False
+        self.file_name_url, _ = QFileDialog.getOpenFileName(self)
+        self.logger.debug(f"Get file name: {self.file_name_url}")
+        self.file_name = QUrl.fromLocalFile(self.file_name_url).fileName()
+        self.thr_file_preparing_should_work = True
 
     
     def parse_wav_file(self, file_name_url):
@@ -181,6 +186,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
     def close_file(self):
         self.logger.info("Close file")
         self.is_file_open = False
+        self.play_wav_file = AudioUIApp.PLAY_WAV_FILE_STOP
+        self.btn_play_wav_file.setText("Play file")
 
         # if self.audio_file is None:
         #     pass
@@ -205,6 +212,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
     def disable_mic(self):
         self.logger.info("Disable mic")
 
+        self.play_audio_mic = AudioUIApp.PLAY_MIC_STOP
+        self.btn_play_mic.setText("Record")
+
         if self.stream is None:
             pass
         else:
@@ -219,10 +229,11 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             self.current_mode = AudioUIApp.CURRENT_MODE_MIC
             self.btn_mode_choice.setText("MIC")
             self.text_brows_info.append(f"MIC audio mode")
+            self.close_file()
         elif self.current_mode == AudioUIApp.CURRENT_MODE_MIC:
             self.current_mode = AudioUIApp.CURRENT_MODE_FILE
             self.btn_mode_choice.setText("File")
-            self.text_brows_info.append(f"File playback mode")
+            self.text_brows_info.append(f"File mode")
             self.disable_mic()
 
 
@@ -242,12 +253,20 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.thr_client_tx.start()
         self.thr_file_preparing.start()
 
-    def connect_mic_handler(self):
-        self.logger.info("Connecting to the MIC handler")
+    # def connect_mic_handler(self):
+    #     self.logger.info("Connecting to the MIC handler")
 
-        self.is_connect_mic = True
-        self.disable_mic()
-        self.text_brows_info.append(f"Enable MIC")
+    #     self.is_connect_mic = not self.is_connect_mic
+
+    #     if self.is_connect_mic is True:
+    #         self.text_brows_info.append(f"Enable MIC")
+    #         self.btn_connect_mic.setText("Disable")
+    #     else:
+    #         self.text_brows_info.append(f"Disable MIC")
+    #         self.disable_mic()
+
+
+        # self.text_brows_info.append(f"Enable MIC")
         
 
     def connect_server_handler(self):
@@ -309,11 +328,10 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             self.btn_play_mic.setText("Stop")
             self.text_brows_info.append("Microphone recording")
         elif self.play_audio_mic == AudioUIApp.PLAY_MIC_PLAYING:
-            self.play_audio_mic = AudioUIApp.PLAY_MIC_STOP
             self.disable_mic()
             self.logger.debug("Stop recording")
-            self.btn_play_mic.setText("Record")
             self.text_brows_info.append("Microphone stop recording")
+
 
         
     def get_ip_address(self):
@@ -364,7 +382,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             self.set_time_period_message(def_val + 3 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA)
 
             
-        # print(f"pers: {val}, period: {self.get_time_period_message()}")
+        print(f"pers: {val}")
 
  
     def tx_task(self):
@@ -398,7 +416,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
 
             elif self.thr_client_tx_should_work is True and self.play_audio_mic == AudioUIApp.PLAY_MIC_PLAYING and \
-                 self.is_connect_mic is True and self.current_mode == AudioUIApp.CURRENT_MODE_MIC:
+                 self.current_mode == AudioUIApp.CURRENT_MODE_MIC:
                 try:
 
                     message = None
@@ -439,7 +457,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             if self.thr_client_rx_should_work is True and self.connection is True:
 
                 try:
-                    recv_data = self.socket.recv(64)
+                    recv_data = self.socket.recv(32)
                     if recv_data == "":
                         continue
                     self.parse_answer_server(recv_data)
@@ -459,11 +477,26 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
       
         while True:
             if self.thr_file_preparing_should_work is True:
-                self.text_brows_info.append("Wait for the upload to complete")
-                self.parse_wav_file(self.file_name_url)
-                self.text_brows_info.append("Upload successful")
-                self.is_file_open = True
+
+                try:
+
+                    self.text_brows_info.append("Wait for the upload to complete")
+                    self.parse_wav_file(self.file_name_url)
+                    self.text_brows_info.append("Upload successful")
+                    self.is_file_open = True
+                
+                except FileNotFoundError as ex:
+                    self.logger.error(f"File open error. {ex}")
+                    self.text_brows_info.append(f"File not found!")
+                    self.is_file_open = False
+
+                except ValueError as ex:
+                    self.logger.error(f"Parse WAV file error. {ex}")
+                    self.text_brows_info.append(f"File must have the format '.wav'.")
+                    self.is_file_open = False
+
                 self.thr_file_preparing_should_work = False
+
 
             Event().wait(0.1)
 
