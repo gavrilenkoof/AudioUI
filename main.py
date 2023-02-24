@@ -100,6 +100,10 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.btn_play_mic.setText("Record")
         self.edit_ip_address.setText("192.168.100.10:7")
 
+        self.btn_play_wav_file.setEnabled(True)
+        self.btn_load_wav_file.setEnabled(True)
+        self.btn_play_mic.setEnabled(False)
+
         # self.btn_connect_mic.setText("Enable")
 
     def closeEvent(self, event):
@@ -229,9 +233,21 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             self.current_mode = AudioUIApp.CURRENT_MODE_MIC
             self.btn_mode_choice.setText("MIC")
             self.text_brows_info.append(f"MIC audio mode")
+
+            self.btn_play_wav_file.setEnabled(False)
+            self.btn_load_wav_file.setEnabled(False)
+
+            self.btn_play_mic.setEnabled(True)
+
             self.close_file()
         elif self.current_mode == AudioUIApp.CURRENT_MODE_MIC:
             self.current_mode = AudioUIApp.CURRENT_MODE_FILE
+
+            self.btn_play_mic.setEnabled(False)
+
+            self.btn_play_wav_file.setEnabled(True)
+            self.btn_load_wav_file.setEnabled(True)
+
             self.btn_mode_choice.setText("File")
             self.text_brows_info.append(f"File mode")
             self.disable_mic()
@@ -318,6 +334,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
     
     def play_audio_mic_handler(self):
         self.logger.info("Play audio MIC handler")
+
+        # if self.current_mode != AudioUIApp.CURRENT_MODE_MIC:
+        #     return
 
         if self.play_audio_mic == AudioUIApp.PLAY_MIC_STOP:
             self.play_audio_mic = AudioUIApp.PLAY_MIC_PLAYING
@@ -479,17 +498,14 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             if self.thr_file_preparing_should_work is True:
 
                 try:
-
                     self.text_brows_info.append("Wait for the upload to complete")
                     self.parse_wav_file(self.file_name_url)
                     self.text_brows_info.append("Upload successful")
                     self.is_file_open = True
-                
                 except FileNotFoundError as ex:
                     self.logger.error(f"File open error. {ex}")
                     self.text_brows_info.append(f"File not found!")
                     self.is_file_open = False
-
                 except ValueError as ex:
                     self.logger.error(f"Parse WAV file error. {ex}")
                     self.text_brows_info.append(f"File must have the format '.wav'.")
