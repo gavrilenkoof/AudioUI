@@ -33,12 +33,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
     DEFAULT_TIMEOUT_MSG = 0.030
     # DEFAULT_TIMEOUT_MSG = 0.015
     DEFAULT_TIMEOUT_MSG_DELTA = 0.006
-    DEFAULT_MIC_TIMEOUT_MSG = 0.007
-    SOURCE_SAMP_WIDTH = 2
-    TARGET_SAMP_WIDTH = 1
-    UINT8_BIAS = 128
-    MSG_LEN_BYTES = 512 # 1024 for 16sign
+    DEFAULT_MIC_TIMEOUT_MSG = 0.005
 
+    MSG_LEN_BYTES = 512 # 1024 for 16sign
 
 
     CURRENT_MODE_FILE = 1 # FILE MODE
@@ -52,27 +49,20 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
     def __init__(self, parent=None):
         super(AudioUIApp, self).__init__(parent)
         self.setupUi(self)
-
-        # self.connection = ClientTCP()
-
         self.logger = logging.getLogger('Main Window')
 
         self.socket = None
         self.connection = False
 
-        # self.audio_file = None # File name
+
         self.is_file_open = False
         self.is_connect_mic = False
-        # self.play_wav_file = False
-        # self.play_audio_mic = False
         self.file_name_url = ''
 
-        # new api
         self.current_mode = AudioUIApp.CURRENT_MODE_FILE
         self.play_wav_file = AudioUIApp.PLAY_WAV_FILE_STOP
         self.play_audio_mic = AudioUIApp.PLAY_MIC_STOP
 
-        
         self.period = AudioUIApp.DEFAULT_TIMEOUT_MSG
 
         self.form_1 = pyaudio.paInt16 
