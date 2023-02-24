@@ -115,15 +115,15 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         try:
 
 
-            file_name_url, _ = QFileDialog.getOpenFileName(self)
-            self.logger.debug(f"Get file name: {file_name_url}")
+            self.file_name_url, _ = QFileDialog.getOpenFileName(self)
+            self.logger.debug(f"Get file name: {self.file_name_url}")
 
-            file_name = QUrl.fromLocalFile(file_name_url).fileName()
+            self.file_name = QUrl.fromLocalFile(self.file_name_url).fileName()
 
             # self.text_brows_info.clear()
-            self.text_brows_info.append(f"File name: {file_name}")
-            self.parse_wav_file(file_name_url)
-            self.is_file_open = True
+            self.text_brows_info.append(f"File name: {self.file_name}")
+            # self.parse_wav_file(file_name_url)
+            # self.is_file_open = True
             self.thr_file_preparing_should_work = True
 
         except FileNotFoundError as ex:
