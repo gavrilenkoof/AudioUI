@@ -74,15 +74,13 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.target_sample_rate = 16000
 
         self.chunk = int(AudioUIApp.MSG_LEN_BYTES * (self.source_sample_rate / self.target_sample_rate)) # for converting 44100 to 8000 format and payload = 512
-        # self.chunk = 512
+
         self.number_frame = 0
-        # self.chunk = 5645
+
 
         self.audio = pyaudio.PyAudio()
         self.stream = None
-        self.need_convert_to_int16 = False
-        # self.ratio = self.target_sample_rate / self.source_sample_rate
-        # self.stream_output = None
+
         
         self.thread_client_configurations()
 
@@ -161,15 +159,12 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             
 
         self.logger.debug(f"source sample rate: {sample_rate}")
-        # if sample_rate != self.target_sample_rate:
-        # self.text_brows_info.append(f"Convert to {self.target_sample_rate} Hz format")
+
         self.text_brows_info.append(f"Preparing file...")
         number_of_samples = round(len(data) * self.target_sample_rate / sample_rate)
         self.data_audio_file = sps.resample(data, number_of_samples, window="triang")
-        # self.data_audio_file = self.data_audio_file.astype(np.int16)
         self.logger.debug(f"new sample rate: {self.target_sample_rate}")
-        # else:
-            # self.data_audio_file = data.astype(np.int16)
+
 
         
 
@@ -191,15 +186,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
     @staticmethod
     def db_to_float(headroom=0.1):
         return 10 ** (headroom / 20)
-
-    # @staticmethod
-    # def butter_lowpass(cutoff, sample_rate, order=5):
-    #     return sps.butter(order, cutoff, fs=sample_rate, btype="lowpass", analog=False)
-
-    # @staticmethod
-    # def butter_lowpass_filter(data, cutoff, sample_rate, order=5):
-    #     b, a = AudioUIApp.butter_lowpass(cutoff=cutoff, sample_rate=sample_rate, order=order)
-    #     return sps.lfilter(b, a, data)
 
 
     def close_file(self):
@@ -280,7 +266,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         try:
             tcp_ip, tcp_port = self.get_ip_address()
-
+            self.close_connection()
             # self.text_brows_info.clear()
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.socket.settimeout(1.5)
