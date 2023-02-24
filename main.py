@@ -80,7 +80,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.source_sample_rate = 44100
         self.target_sample_rate = 16000
 
-        self.chunk = int(AudioUIApp.MSG_LEN_BYTES * (self.source_sample_rate / self.target_sample_rate)) # for converting 44100 to 8000 format and payload = 512
+        self.chunk = int(AudioUIApp.MSG_LEN_BYTES * (self.source_sample_rate / self.target_sample_rate)) # for converting 44100 to 16000 format and payload = 512
 
         self.number_frame = 0
 
@@ -218,8 +218,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         if self.stream is None:
             pass
         else:
-            self.stream.stop_stream()
             self.stream.close()
+            self.stream.stop_stream()
 
 
     def change_mode_handler(self):
