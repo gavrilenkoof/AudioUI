@@ -52,6 +52,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.logger = logging.getLogger('Main Window')
 
         self.socket = None
+
         self.connection = False
         self.tcp_ip = TCP_IP
         self.tcp_port = TCP_PORT
@@ -205,13 +206,13 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         self.thr_client_tx_should_work = False
         self.thr_client_rx_should_work = False
-
         self.connection = False
 
 
         if self.socket is None:
             pass
         else:
+            self.socket.shutdown(socket.SHUT_RDWR)
             self.socket.close()
 
     def disable_mic(self):
@@ -274,8 +275,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
     def connect_server_handler(self):
         self.logger.info("Connecting to the server handler")
 
+        self.close_connection()
+
         try:
-            self.close_connection()
             self.tcp_ip, self.tcp_port = self.get_ip_address()
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.socket.settimeout(1.5)
@@ -443,18 +445,21 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 period = self.get_time_period_message()
                 Event().wait(0.005)
 
-            else:
+            elif self.connection is True:
 
                 try:
-                    self.socket.send("0".encode("utf-8"))
+                    # self.socket.send("0".encode("utf-8"))
+                    pass
                 except socket.timeout as ex:
                     self.logger.debug(f"{ex}")
                 except AttributeError as ex:
                     # self.logger.debug(f"{ex}")
                     pass
                 except OSError as ex:
-                    self.logger.debug(f"{ex}")
+                    self.logger.debug(f"test{ex}")
 
+                Event().wait(0.1)
+            else:
                 Event().wait(0.1)
 
             
