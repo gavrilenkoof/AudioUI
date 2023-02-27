@@ -415,10 +415,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 message = None
 
 
-                # if first_message is True:
-                #     period = 0.5
-                #     first_message = False
-
                 Event().wait(period)
 
 
@@ -446,8 +442,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     self.logger.warning(f"OSError MIC. {ex}")
                     continue
 
-                period = self.get_time_period_message()
-                Event().wait(0.005)
+                # period = self.get_time_period_message()
+                Event().wait(AudioUIApp.DEFAULT_MIC_TIMEOUT_MSG)
 
             elif self.connection is True:
 
