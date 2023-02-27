@@ -116,22 +116,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
     def load_wav_file_handler(self):
         self.logger.info("Load wav file handler")
 
-        # close prev file
-        # self.close_file()
-
-        # try:
-
-        #     self.file_name_url, _ = QFileDialog.getOpenFileName(self)
-        #     self.logger.debug(f"Get file name: {self.file_name_url}")
-
-        #     self.file_name = QUrl.fromLocalFile(self.file_name_url).fileName()
-
-        #     self.thr_file_preparing_should_work = True
-
-        # except FileNotFoundError as ex:
-        #     self.logger.error(f"File open error. {ex}")
-        #     self.text_brows_info.append(f"File not found!")
-        #     self.is_file_open = False
         self.close_file()
         self.file_name_url, _ = QFileDialog.getOpenFileName(self)
         self.logger.debug(f"Get file name: {self.file_name_url}")
@@ -156,7 +140,10 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             self.logger.warning("Convert from uint8 to int16 format")
             self.text_brows_info.append(f"Convert to sample width 2")
             data = data.astype(np.int16)
+            # print(data.max(), data.min())
             data = AudioUIApp.map_int(data)
+            # print(data.max(), data.min())
+
             
 
         self.logger.debug(f"source sample rate: {sample_rate}")
@@ -178,6 +165,10 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
     
 
+    @staticmethod
+    def map_int(x, in_min=0, in_max=255, out_min=-32768, out_max=32767):
+        return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
+    
     @staticmethod
     def normalize(data, max_val_input, max_range_val):
         return (data / max_val_input) * max_range_val 
@@ -310,9 +301,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             self.close_connection()
             self.text_brows_info.append(f"Bad address format!")
 
-    @staticmethod
-    def map_int(x, in_min=0, in_max=255, out_min=-32768, out_max=32767):
-        return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
+
 
 
     def play_wav_file_handler(self):
@@ -415,16 +404,19 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 message = None
 
                 message = self.data_audio_file[self.number_frame * AudioUIApp.MSG_LEN_BYTES: (self.number_frame + 1) * AudioUIApp.MSG_LEN_BYTES]
-                self.number_frame += 1
 
                 if self.number_frame >= int(len(self.data_audio_file) / AudioUIApp.MSG_LEN_BYTES):
                     self.number_frame = 0
 
-
-                self.socket.send(message)
+                try:
+                    self.socket.send(message)
+                    self.number_frame += 1
+                except socket.timeout as ex:
+                    self.logger.error(f"Send message error. {ex}")
 
                 period = self.get_time_period_message()
                 message = None
+
 
                 # if first_message is True:
                 #     period = 0.5
@@ -447,12 +439,11 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
                     message = message.astype(np.int16)
                     message = message.tobytes()
-                    self.socket.sendall(message)
+                    self.socket.send(message)
                     message = None
 
-
-                except:
-                    continue
+                except AttributeError as ex:
+                    pass
 
                 period = self.get_time_period_message()
                 Event().wait(0.005)
@@ -460,11 +451,15 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             else:
 
                 try:
-                    self.socket.send("0".encode("utf-8"))
+                    # self.socket.send("0".encode("utf-8"))
+                    pass
                 except socket.timeout as ex:
-                    pass
+                    self.logger.debug(f"{ex}")
                 except AttributeError as ex:
+                    # self.logger.debug(f"{ex}")
                     pass
+                except OSError as ex:
+                    self.logger.debug(f"{ex}")
 
                 Event().wait(0.1)
 
