@@ -440,7 +440,11 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     message = None
 
                 except AttributeError as ex:
-                    pass
+                    self.logger.warning(f"AttributeError MIC. {ex}")
+                    continue
+                except OSError as ex:
+                    self.logger.warning(f"OSError MIC. {ex}")
+                    continue
 
                 period = self.get_time_period_message()
                 Event().wait(0.005)
@@ -448,8 +452,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             elif self.connection is True:
 
                 try:
-                    # self.socket.send("0".encode("utf-8"))
-                    pass
+                    self.socket.send("0".encode("utf-8"))
+                    # pass
                 except socket.timeout as ex:
                     self.logger.debug(f"{ex}")
                 except AttributeError as ex:
