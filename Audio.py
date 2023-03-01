@@ -84,7 +84,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         #         channels=self.chans, input=True,
         #         frames_per_buffer=self.chunk, start=False)
 
-        self.volume = self.slider_volume.value() / 100 # default volume
     
         
         self.thread_client_configurations()
@@ -122,7 +121,11 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.slider_volume.setMinimum(0)
         self.slider_volume.setMaximum(100)
 
+        self.volume = self.slider_volume.value()
         self.label_volume.setText(f"{self.volume}%")
+        self.volume /= 100
+
+
 
 
         # self.btn_connect_mic.setText("Enable")
@@ -514,8 +517,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 and self.play_wav_file != AudioUIApp.PLAY_WAV_FILE_PLAYING:
                 time_period_message = 0
                 try:
-                    self.socket.send(message)
-                    # pass
+                    # self.socket.send(message)
+                    pass
                 except socket.timeout as ex:
                     self.logger.debug(f"{ex}")
                 except AttributeError as ex:
