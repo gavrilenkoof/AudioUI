@@ -71,8 +71,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.form_1 = pyaudio.paInt16 
         self.chans = 1 
 
-
-
         self.number_frame = 0
 
 
@@ -86,6 +84,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         #         channels=self.chans, input=True,
         #         frames_per_buffer=self.chunk, start=False)
 
+        self.volume = self.slider_volume.value() / 100 # default volume
+    
         
         self.thread_client_configurations()
 
@@ -104,6 +104,10 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         self.btn_reboot_server.clicked.connect(self.reboot_server_handler)
 
+        self.slider_volume.valueChanged.connect(self.slider_volume_event_handler)
+
+
+
     def widjet_adjust(self):
 
         self.btn_play_wav_file.setText("Play file")
@@ -114,7 +118,21 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.btn_load_wav_file.setEnabled(True)
         self.btn_play_mic.setEnabled(False)
 
+
+        self.slider_volume.setMinimum(0)
+        self.slider_volume.setMaximum(100)
+
+        self.label_volume.setText(f"{self.volume}%")
+
+
         # self.btn_connect_mic.setText("Enable")
+
+    def slider_volume_event_handler(self):
+        self.volume = self.slider_volume.value()
+        self.label_volume.setText(f"{self.volume}%")
+        self.volume /= 100
+        # print(f"{self.volume}")
+
 
     def reboot_server_handler(self):
         self.logger.info("Reboot server handler")
@@ -199,6 +217,10 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.data_audio_file = self.data_audio_file.astype(np.int16)
 
     
+    @staticmethod
+    def set_volume(x, volume):
+        return x * volume
+
     @staticmethod
     def map_int(x, in_min=0, in_max=255, out_min=-32768, out_max=32767):
         return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
@@ -443,6 +465,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 if self.number_frame >= int(len(self.data_audio_file) / AudioUIApp.MSG_LEN_BYTES):
                     self.number_frame = 0
 
+                message = AudioUIApp.set_volume(message, self.volume)
+                message = message.astype(np.int16)
+
                 try:
                     self.socket.send(message)
                     self.number_frame += 1
@@ -468,8 +493,10 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     # message = sps.resample(message, number_of_samples)
                     message = sps.resample(message, number_of_samples, window="bohman")
 
+                    message = AudioUIApp.set_volume(message, self.volume)
+
                     message = message.astype(np.int16)
-                    message = message.tobytes()
+                    # message = message.tobytes()
                     self.socket.send(message)
                     # message = None
 
