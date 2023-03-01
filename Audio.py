@@ -422,6 +422,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
  
     def tx_task(self):
 
+        idle_period = 0.001
+
         while True:
 
             message = "0".encode("utf-8")
@@ -478,9 +480,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
                 try:
                     recv_data = self.socket.recv(32)
-                    if recv_data == "":
-                        continue
-                    self.parse_answer_server(recv_data)
+                    if recv_data != "":
+                        self.parse_answer_server(recv_data)
 
                 except socket.timeout as ex:
                     continue
