@@ -38,8 +38,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
     MSG_LEN_BYTES = 512 # 1024 for 16sign
 
 
-    CURRENT_MODE_FILE = 1 # FILE MODE
-    CURRENT_MODE_MIC = 2 # MIC MODE
+    CURRENT_MODE_FILE = 1
+    CURRENT_MODE_MIC = 2 
     PLAY_WAV_FILE_PLAYING = 3 
     PLAY_WAV_FILE_STOP = 4
     PLAY_MIC_PLAYING = 5
@@ -73,18 +73,12 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         self.number_frame = 0
 
-
         self.audio = pyaudio.PyAudio()
         self.source_sample_rate = int(self.audio.get_default_input_device_info()["defaultSampleRate"])
         self.target_sample_rate = 16000
         self.chunk = int(AudioUIApp.MSG_LEN_BYTES * (self.source_sample_rate / self.target_sample_rate)) # for converting 44100 to 16000 format and payload = 512
 
         self.stream = None
-        # self.stream = self.audio.open(format=self.form_1, rate=self.source_sample_rate,
-        #         channels=self.chans, input=True,
-        #         frames_per_buffer=self.chunk, start=False)
-
-    
         
         self.thread_client_configurations()
 
@@ -92,11 +86,10 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.widjet_functional()
     
     def widjet_functional(self):
-        # Button's handlers
+
         self.btn_load_wav_file.clicked.connect(self.load_wav_file_handler)
         self.btn_connect_to_server.clicked.connect(self.connect_server_handler)
         self.btn_mode_choice.clicked.connect(self.change_mode_handler)
-        # self.btn_connect_mic.clicked.connect(self.connect_mic_handler)
         
         self.btn_play_wav_file.clicked.connect(self.play_wav_file_handler)
         self.btn_play_mic.clicked.connect(self.play_audio_mic_handler)
@@ -104,7 +97,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.btn_reboot_server.clicked.connect(self.reboot_server_handler)
 
         self.slider_volume.valueChanged.connect(self.slider_volume_event_handler)
-
 
 
     def widjet_adjust(self):
@@ -126,15 +118,10 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.volume /= 100
 
 
-
-
-        # self.btn_connect_mic.setText("Enable")
-
     def slider_volume_event_handler(self):
         self.volume = self.slider_volume.value()
         self.label_volume.setText(f"{self.volume}%")
         self.volume /= 100
-        # print(f"{self.volume}")
 
 
     def reboot_server_handler(self):
@@ -145,14 +132,10 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.thr_file_preparing_should_work = False
         self.connection = False
 
-        # self.text_brows_info.append(f"Reboot server")
         self.set_text_browser(f"Reboot server")
-
-
         self.close_file()
         self.disable_mic()
 
-        # if self.socket is not None:
         try:
             self.socket.send("reboot".encode("utf-8"))
         except OSError as ex:
@@ -185,7 +168,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         self.logger.info("Parse wav file")
 
-
         self.data_audio_file = None
         self.number_frame = 0
         sample_rate, data = wavfile.read(file_name_url)
@@ -196,18 +178,13 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         if data.dtype == np.uint8:
             self.logger.warning("Convert from uint8 to int16 format")
-            # self.text_brows_info.append(f"Convert to sample width 2")
             self.set_text_browser(f"Convert to sample width 2")
             data = data.astype(np.int16)
-            # print(data.max(), data.min())
             data = AudioUIApp.map_int(data)
-            # print(data.max(), data.min())
 
             
 
         self.logger.debug(f"source sample rate: {sample_rate}")
-
-        # self.text_brows_info.append(f"Preparing file...")
         self.set_text_browser(f"Preparing file...")
         number_of_samples = round(len(data) * self.target_sample_rate / sample_rate)
         self.data_audio_file = sps.resample(data, number_of_samples, window="triang")
@@ -262,7 +239,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             try:
                 self.socket.shutdown(socket.SHUT_RDWR)
             except OSError as ex:
-                pass
+                self.logger.error(f"Shutdown error. {ex}")
             self.socket.close()
 
     def disable_mic(self):
@@ -284,7 +261,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         if self.current_mode == AudioUIApp.CURRENT_MODE_FILE:
             self.current_mode = AudioUIApp.CURRENT_MODE_MIC
             self.btn_mode_choice.setText("MIC")
-            # self.text_brows_info.append(f"MIC audio mode")
             self.set_text_browser(f"MIC audio mode")
 
             self.btn_play_wav_file.setEnabled(False)
@@ -302,7 +278,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             self.btn_load_wav_file.setEnabled(True)
 
             self.btn_mode_choice.setText("File")
-            # self.text_brows_info.append(f"File mode") 
             self.set_text_browser(f"File mode")
             self.disable_mic()
 
@@ -342,75 +317,55 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             self.thr_client_tx_should_work = True
             self.thr_client_rx_should_work = True
             self.connection = True
-            # self.text_brows_info.append(f"Connection to {self.tcp_ip}:{self.tcp_port} successfully")
             self.set_text_browser(f"Connection to {self.tcp_ip}:{self.tcp_port} successfully")
             self.logger.debug(f"Connection to {self.tcp_ip}:{self.tcp_port} successfully")
         except socket.timeout as ex:
             self.logger.error(f"Socket.timeout. Connection failed: {ex}")
             self.close_connection()
-            # self.text_brows_info.clear()
-            # self.text_brows_info.append(f"Connection failed. Address {self.tcp_ip}:{self.tcp_port}")
             self.set_text_browser(f"Connection failed. Address {self.tcp_ip}:{self.tcp_port}")
         except IndexError as ex:
             self.logger.error(f"IndexError. {ex}")
-            # self.text_brows_info.clear()
             self.close_connection()
-            # self.text_brows_info.append(f"Bad address format!")
             self.set_text_browser(f"Bad address format!")
-
-
-
 
     def play_wav_file_handler(self):
         self.logger.info("Play WAV file handler")
-
 
         if self.play_wav_file == AudioUIApp.PLAY_WAV_FILE_STOP:
             self.play_wav_file = AudioUIApp.PLAY_WAV_FILE_PLAYING
             self.logger.debug("Play file")
             self.btn_play_wav_file.setText("Stop file")
-            # self.text_brows_info.append("Uploading file")
             self.set_text_browser(f"Uploading file")
 
         elif self.play_wav_file == AudioUIApp.PLAY_WAV_FILE_PLAYING:
             self.play_wav_file = AudioUIApp.PLAY_WAV_FILE_STOP
             self.btn_play_wav_file.setText("Play file")
             self.logger.debug("Stop file")
-            # self.text_brows_info.append("Stop uploading file")
             self.set_text_browser(f"Stop uploading file")
 
 
     def play_audio_mic_handler(self):
         self.logger.info("Play audio MIC handler")
 
-        # if self.current_mode != AudioUIApp.CURRENT_MODE_MIC:
-        #     return
-
         if self.play_audio_mic == AudioUIApp.PLAY_MIC_STOP:
-            self.play_audio_mic = AudioUIApp.PLAY_MIC_PLAYING
-            # is stream an inactive?
-            # self.stream.start_stream()
 
             self.stream = self.audio.open(format=self.form_1, rate=self.source_sample_rate,
                 channels=self.chans, input=True,
                 frames_per_buffer=self.chunk, start=True)
 
-            # Event().wait(0.5)
+            Event().wait(0.1)
+            self.play_audio_mic = AudioUIApp.PLAY_MIC_PLAYING
             self.logger.debug("Recording")
             self.btn_play_mic.setText("Stop")
-            # self.text_brows_info.append("Microphone recording")
             self.set_text_browser(f"Microphone recording")
 
         elif self.play_audio_mic == AudioUIApp.PLAY_MIC_PLAYING:
-            # is stream an active?
 
             self.disable_mic()
 
-            Event().wait(0.5)
+            Event().wait(0.3)
             self.logger.debug("Stop recording")
-            # self.text_brows_info.append("Microphone stop recording")
             self.set_text_browser(f"Microphone stop recording")
-
 
 
         
@@ -467,11 +422,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
  
     def tx_task(self):
 
-        # first_message = True
-
-        time_period_message = 0
-        idle_period = 0.001
-        
         while True:
 
             message = "0".encode("utf-8")
@@ -479,8 +429,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             if self.thr_client_tx_should_work is True and self.play_wav_file == AudioUIApp.PLAY_WAV_FILE_PLAYING and \
                 self.is_file_open is True and self.current_mode == AudioUIApp.CURRENT_MODE_FILE:
                 
-                # message = None
-
                 message = self.data_audio_file[self.number_frame * AudioUIApp.MSG_LEN_BYTES: (self.number_frame + 1) * AudioUIApp.MSG_LEN_BYTES]
 
                 if self.number_frame >= int(len(self.data_audio_file) / AudioUIApp.MSG_LEN_BYTES):
@@ -496,9 +444,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     self.logger.error(f"Send message error. {ex}")
 
                 period = self.get_time_period_message()
-                # message = None
-
-
                 Event().wait(period)
 
 
@@ -506,47 +451,22 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             elif self.thr_client_tx_should_work is True and self.play_audio_mic == AudioUIApp.PLAY_MIC_PLAYING and \
                  self.current_mode == AudioUIApp.CURRENT_MODE_MIC:
                 try:
-
-                    # message = None
                     data = self.stream.read(self.chunk)
                     message = np.frombuffer(data, dtype=np.int16)
                     number_of_samples = round(len(message) * self.target_sample_rate / self.source_sample_rate)
-                    # message = sps.resample(message, number_of_samples)
                     message = sps.resample(message, number_of_samples, window="bohman")
-
                     message = AudioUIApp.set_volume(message, self.volume)
-
                     message = message.astype(np.int16)
-                    # message = message.tobytes()
                     self.socket.send(message)
-                    # message = None
-
                 except AttributeError as ex:
-                    self.logger.warning(f"AttributeError MIC. {ex}")
-                    # continue
+                    self.logger.error(f"AttributeError MIC. {ex}")
                 except OSError as ex:
-                    self.logger.warning(f"OSError MIC. {ex}")
-                    # continue
+                    self.logger.error(f"OSError MIC. {ex}")
 
-                # period = self.get_time_period_message()
                 Event().wait(AudioUIApp.DEFAULT_MIC_TIMEOUT_MSG)
 
-            elif self.connection is True and time_period_message >= 0.100 and self.play_audio_mic != AudioUIApp.PLAY_MIC_PLAYING \
-                and self.play_wav_file != AudioUIApp.PLAY_WAV_FILE_PLAYING:
-                time_period_message = 0
-                try:
-                    # self.socket.send(message)
-                    pass
-                except socket.timeout as ex:
-                    self.logger.debug(f"{ex}")
-                except AttributeError as ex:
-                    # self.logger.debug(f"{ex}")
-                    pass
-                except OSError as ex:
-                    self.logger.debug(f"test{ex}")
-
             else:
-                time_period_message += idle_period
+                # time_period_message += idle_period
                 Event().wait(idle_period)
 
             
