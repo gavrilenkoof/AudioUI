@@ -145,7 +145,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.thr_file_preparing_should_work = False
         self.connection = False
 
-        self.text_brows_info.append(f"Reboot server")
+        # self.text_brows_info.append(f"Reboot server")
+        self.set_text_browser(f"Reboot server")
+
 
         self.close_file()
         self.disable_mic()
@@ -194,7 +196,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         if data.dtype == np.uint8:
             self.logger.warning("Convert from uint8 to int16 format")
-            self.text_brows_info.append(f"Convert to sample width 2")
+            # self.text_brows_info.append(f"Convert to sample width 2")
+            self.set_text_browser(f"Convert to sample width 2")
             data = data.astype(np.int16)
             # print(data.max(), data.min())
             data = AudioUIApp.map_int(data)
@@ -204,7 +207,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         self.logger.debug(f"source sample rate: {sample_rate}")
 
-        self.text_brows_info.append(f"Preparing file...")
+        # self.text_brows_info.append(f"Preparing file...")
+        self.set_text_browser(f"Preparing file...")
         number_of_samples = round(len(data) * self.target_sample_rate / sample_rate)
         self.data_audio_file = sps.resample(data, number_of_samples, window="triang")
         self.logger.debug(f"new sample rate: {self.target_sample_rate}")
@@ -280,7 +284,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         if self.current_mode == AudioUIApp.CURRENT_MODE_FILE:
             self.current_mode = AudioUIApp.CURRENT_MODE_MIC
             self.btn_mode_choice.setText("MIC")
-            self.text_brows_info.append(f"MIC audio mode")
+            # self.text_brows_info.append(f"MIC audio mode")
+            self.set_text_browser(f"MIC audio mode")
 
             self.btn_play_wav_file.setEnabled(False)
             self.btn_load_wav_file.setEnabled(False)
@@ -297,11 +302,15 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             self.btn_load_wav_file.setEnabled(True)
 
             self.btn_mode_choice.setText("File")
-            self.text_brows_info.append(f"File mode")
+            # self.text_brows_info.append(f"File mode") 
+            self.set_text_browser(f"File mode")
             self.disable_mic()
 
         Event().wait(0.1)
 
+    def set_text_browser(self, text):
+        self.text_brows_info.append(text)
+        self.text_brows_info.moveCursor(QtGui.QTextCursor.End)
 
 
     def thread_client_configurations(self):
@@ -333,18 +342,21 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             self.thr_client_tx_should_work = True
             self.thr_client_rx_should_work = True
             self.connection = True
-            self.text_brows_info.append(f"Connection to {self.tcp_ip}:{self.tcp_port} successfully")
+            # self.text_brows_info.append(f"Connection to {self.tcp_ip}:{self.tcp_port} successfully")
+            self.set_text_browser(f"Connection to {self.tcp_ip}:{self.tcp_port} successfully")
             self.logger.debug(f"Connection to {self.tcp_ip}:{self.tcp_port} successfully")
         except socket.timeout as ex:
             self.logger.error(f"Socket.timeout. Connection failed: {ex}")
             self.close_connection()
             # self.text_brows_info.clear()
-            self.text_brows_info.append(f"Connection failed. Address {self.tcp_ip}:{self.tcp_port}")
+            # self.text_brows_info.append(f"Connection failed. Address {self.tcp_ip}:{self.tcp_port}")
+            self.set_text_browser(f"Connection failed. Address {self.tcp_ip}:{self.tcp_port}")
         except IndexError as ex:
             self.logger.error(f"IndexError. {ex}")
             # self.text_brows_info.clear()
             self.close_connection()
-            self.text_brows_info.append(f"Bad address format!")
+            # self.text_brows_info.append(f"Bad address format!")
+            self.set_text_browser(f"Bad address format!")
 
 
 
@@ -357,15 +369,17 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             self.play_wav_file = AudioUIApp.PLAY_WAV_FILE_PLAYING
             self.logger.debug("Play file")
             self.btn_play_wav_file.setText("Stop file")
-            self.text_brows_info.append("Uploading file")
+            # self.text_brows_info.append("Uploading file")
+            self.set_text_browser(f"Uploading file")
+
         elif self.play_wav_file == AudioUIApp.PLAY_WAV_FILE_PLAYING:
             self.play_wav_file = AudioUIApp.PLAY_WAV_FILE_STOP
             self.btn_play_wav_file.setText("Play file")
             self.logger.debug("Stop file")
-            self.text_brows_info.append("Stop uploading file")
+            # self.text_brows_info.append("Stop uploading file")
+            self.set_text_browser(f"Stop uploading file")
 
 
-    
     def play_audio_mic_handler(self):
         self.logger.info("Play audio MIC handler")
 
@@ -384,7 +398,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             # Event().wait(0.5)
             self.logger.debug("Recording")
             self.btn_play_mic.setText("Stop")
-            self.text_brows_info.append("Microphone recording")
+            # self.text_brows_info.append("Microphone recording")
+            self.set_text_browser(f"Microphone recording")
+
         elif self.play_audio_mic == AudioUIApp.PLAY_MIC_PLAYING:
             # is stream an active?
 
@@ -392,7 +408,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
             Event().wait(0.5)
             self.logger.debug("Stop recording")
-            self.text_brows_info.append("Microphone stop recording")
+            # self.text_brows_info.append("Microphone stop recording")
+            self.set_text_browser(f"Microphone stop recording")
+
 
 
         
