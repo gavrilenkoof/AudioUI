@@ -527,7 +527,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 except OSError as ex:
                     self.logger.debug(f"test{ex}")
 
-                # Event().wait(0.1)
             else:
                 time_period_message += idle_period
                 Event().wait(idle_period)
