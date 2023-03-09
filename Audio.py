@@ -62,7 +62,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         super(AudioUIApp, self).__init__(parent)
         self.setupUi(self)
 
-        self.setWindowIcon(QtGui.QIcon(get_correct_path("icons\\mic.jpg")))
+        self.setWindowIcon(QtGui.QIcon(get_correct_path("icons\\mic_icon.jpg")))
 
         self.logger = logging.getLogger('Main Window')
 
