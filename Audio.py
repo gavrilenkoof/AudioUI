@@ -16,7 +16,7 @@ from scipy.io import wavfile
 import scipy.signal as sps
 import numpy as np
 
-TCP_IP = '192.168.100.10'
+TCP_IP = '192.168.0.107'
 TCP_PORT = 7
 
 
@@ -103,7 +103,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         self.btn_play_wav_file.setText("Play file")
         self.btn_play_mic.setText("Record")
-        self.edit_ip_address.setText("192.168.100.10:7")
+        self.edit_ip_address.setText(f"{TCP_IP}:{str(TCP_PORT)}")
 
         self.btn_play_wav_file.setEnabled(True)
         self.btn_load_wav_file.setEnabled(True)
