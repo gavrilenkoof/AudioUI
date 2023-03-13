@@ -1,7 +1,10 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QApplication, QFileDialog
 from PyQt5.QtCore import QUrl
+from PyQt5.QtGui import QIcon
+
 import sys
+import os
 import AudioUI
 import logging
 
@@ -12,6 +15,7 @@ import time
 import pyaudio
 
 
+
 from scipy.io import wavfile
 import scipy.signal as sps
 import numpy as np
@@ -19,6 +23,14 @@ import numpy as np
 TCP_IP = '192.168.0.107'
 TCP_PORT = 7
 
+
+def get_correct_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 
 if hasattr(QtCore.Qt, 'AA_EnableHighDpiScaling'):
@@ -49,6 +61,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
     def __init__(self, parent=None):
         super(AudioUIApp, self).__init__(parent)
         self.setupUi(self)
+
+        self.setWindowIcon(QtGui.QIcon(get_correct_path("icons\\mic_icon.jpg")))
+
         self.logger = logging.getLogger('Main Window')
 
         self.socket = None
@@ -82,10 +97,10 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         
         self.thread_client_configurations()
 
-        self.widjet_adjust()
-        self.widjet_functional()
+        self.widget_adjust()
+        self.widget_functional()
     
-    def widjet_functional(self):
+    def widget_functional(self):
 
         self.btn_load_wav_file.clicked.connect(self.load_wav_file_handler)
         self.btn_connect_to_server.clicked.connect(self.connect_server_handler)
@@ -99,7 +114,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.slider_volume.valueChanged.connect(self.slider_volume_event_handler)
 
 
-    def widjet_adjust(self):
+    def widget_adjust(self):
 
         self.btn_play_wav_file.setText("Play file")
         self.btn_play_mic.setText("Record")
