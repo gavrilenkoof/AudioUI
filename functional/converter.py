@@ -10,17 +10,11 @@ logger = logging.getLogger(__name__.replace('__', ''))
 
 class Converter:
 
-    def __init__(self, need_convert, source_sample_rate, target_sample_rate, format):
+    def __init__(self, need_convert, target_sample_rate):
         self._need_convert = need_convert
-        self._mic_source_sample_rate = source_sample_rate
+        # self._mic_source_sample_rate = source_sample_rate
         self._target_sample_rate = target_sample_rate
-        self.form = format
-
-
-        #
-        # For file
-        #
-        self._data_audio_file = None
+        # self.form = format
 
 
     def convert_mic(self):
@@ -29,12 +23,6 @@ class Converter:
     def covert_file_audio(self):
         pass
 
-
-    def get_mic_source_sample_rate(self):
-        return self._mic_source_sample_rate
-    
-    def get_target_sample_rate(self):
-        return self._target_sample_rate
     
     @staticmethod
     def map_int(self, x, in_min=0, in_max=255, out_min=-32768, out_max=32767):

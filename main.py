@@ -76,7 +76,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         self.setWindowIcon(QtGui.QIcon(get_correct_path("icons\\mic_icon.jpg")))
 
-        self._converter = Converter(True, 44100, 16000, pyaudio.paInt16)
+        self._converter = Converter(True, 16000)
 
         self.socket = None
 
@@ -104,7 +104,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.source_sample_rate = int(self.audio.get_default_input_device_info()["defaultSampleRate"])
         self.target_sample_rate = 16000
         self.chunk = int(AudioUIApp.MSG_LEN_BYTES * 
-                         (self._converter.get_mic_source_sample_rate() / self._converter.get_target_sample_rate())) # for converting 44100 to 16000 format and payload = 512
+                         (self.source_sample_rate / self.target_sample_rate)) # for converting 44100 to 16000 format and payload = 512
 
         self.stream = None
         
@@ -200,9 +200,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.number_frame = 0
         sample_rate, data = wavfile.read(file_name_url)
 
-
         self.data_audio_file = self._converter.prepare_wav_file(data, sample_rate)
         
+
 
     
     @staticmethod
