@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__.replace('__', ''))
 class Converter:
 
     def __init__(self, need_convert, target_sample_rate):
+        super(Converter, self).__init__()
         self._need_convert = need_convert
         # self._mic_source_sample_rate = source_sample_rate
         self._target_sample_rate = target_sample_rate
@@ -70,3 +71,6 @@ class Converter:
             new_data = self._converting_file(data, source_sample_rate)
 
         return new_data
+
+    def get_target_sample_rate(self):
+        return self._target_sample_rate

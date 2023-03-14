@@ -11,17 +11,14 @@ import logging
 import wave
 from threading import Thread, Event
 import socket
-import time
 import pyaudio
 
-
-from scipy.io import wavfile
 import scipy.signal as sps
 import numpy as np
 
+from functional.microphone import Microphone
 from functional.file_audio import FileAudio
 from functional.converter import Converter
-
 
 
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG,
@@ -78,6 +75,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         self._converter = Converter(True, 16000)
         self._file_audio = FileAudio()
+        self._microphone = Microphone(1, pyaudio.paInt16)
 
         self.socket = None
 
@@ -95,7 +93,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.play_audio_mic = AudioUIApp.PLAY_MIC_STOP
 
         self.period = AudioUIApp.DEFAULT_TIMEOUT_MSG
-
+        
         self.form_1 = pyaudio.paInt16 
         self.chans = 1 
 
@@ -192,11 +190,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.file_name = QUrl.fromLocalFile(self.file_name_url).fileName()
         self.thr_file_preparing_should_work = True
 
-    
-    def parse_wav_file(self, file_name_url):
-        pass
-
-        
 
 
     
@@ -220,6 +213,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
     def close_file(self):
         logger.info("Close file")
         self.is_file_open = False
+        self._file_audio.close()
         self.play_wav_file = AudioUIApp.PLAY_WAV_FILE_STOP
         self.btn_play_wav_file.setText("Play file")
 
@@ -248,11 +242,13 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         Event().wait(0.1)
         self.btn_play_mic.setText("Record")
 
-        if self.stream is None:
-            pass
-        else:
-            self.stream.stop_stream()
-            self.stream.close()
+        self._microphone.disable()
+
+        # if self.stream is None:
+        #     pass
+        # else:
+        #     self.stream.stop_stream()
+        #     self.stream.close()
 
 
     def change_mode_handler(self):
@@ -349,9 +345,11 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         if self.play_audio_mic == AudioUIApp.PLAY_MIC_STOP:
 
-            self.stream = self.audio.open(format=self.form_1, rate=self.source_sample_rate,
-                channels=self.chans, input=True,
-                frames_per_buffer=self.chunk, start=True)
+            # self.stream = self.audio.open(format=self.form_1, rate=self.source_sample_rate,
+            #     channels=self.chans, input=True,
+            #     frames_per_buffer=self.chunk, start=True)
+
+            self._microphone.enable()
 
             # Event().wait(0.3)
             self.play_audio_mic = AudioUIApp.PLAY_MIC_PLAYING
@@ -447,19 +445,39 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
             elif self.thr_client_tx_should_work is True and self.play_audio_mic == AudioUIApp.PLAY_MIC_PLAYING and \
                  self.current_mode == AudioUIApp.CURRENT_MODE_MIC:
+                
+                chunk = int(self._microphone.MSG_LEN_BYTES * 
+                            (self._microphone.get_source_sample_rate() / self._converter.get_target_sample_rate()))
+
                 try:
-                    if self.stream.is_active():
-                        data = self.stream.read(self.chunk)
-                        message = np.frombuffer(data, dtype=np.int16)
-                        number_of_samples = round(len(message) * self.target_sample_rate / self.source_sample_rate)
-                        message = sps.resample(message, number_of_samples, window="bohman")
-                        message = AudioUIApp.set_volume(message, self.volume)
-                        message = message.astype(np.int16)
-                        self.socket.send(message)
+
+
+                    message = self._microphone.read(chunk)
+
+                    if message is None:
+                        continue
+
+                    message = np.frombuffer(message, dtype=np.int16)
+
+                    number_of_samples = round(len(message) * self._converter.get_target_sample_rate() / self._microphone.get_source_sample_rate())
+                    message = sps.resample(message, number_of_samples, window="bohman")
+                    message = AudioUIApp.set_volume(message, self.volume)
+                    message = message.astype(np.int16)
+                    self.socket.send(message)
+
+                    # if self.stream.is_active():
+                    #     data = self.stream.read(self.chunk)
+                    #     message = np.frombuffer(data, dtype=np.int16)
+                    #     number_of_samples = round(len(message) * self.target_sample_rate / self.source_sample_rate)
+                    #     message = sps.resample(message, number_of_samples, window="bohman")
+                    #     message = AudioUIApp.set_volume(message, self.volume)
+                    #     message = message.astype(np.int16)
+                    #     self.socket.send(message)
+
                 except AttributeError as ex:
-                    self.logger.error(f"AttributeError MIC. {ex}")
+                    logger.error(f"AttributeError MIC. {ex}")
                 except OSError as ex:
-                    self.logger.error(f"OSError MIC. {ex}")
+                    logger.error(f"OSError MIC. {ex}")
 
                 Event().wait(AudioUIApp.DEFAULT_MIC_TIMEOUT_MSG)
 

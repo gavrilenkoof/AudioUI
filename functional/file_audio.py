@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__.replace('__', ''))
 class FileAudio:
 
     def __init__(self):
+        super(FileAudio, self).__init__()
         self._data = None
         self._number_frame = 0
         self._source_sample_rate = 0
@@ -16,12 +17,12 @@ class FileAudio:
         self._prepared_all_data = None
 
     def open(self, file_name_url):
-        self._data = None
-        self._prepared_all_data = None
         self._file_name_url = file_name_url
 
     def close(self):
-        pass
+        self._data = None
+        self._prepared_all_data = None
+        self._number_frame = 0
 
     def read_all(self):
 
