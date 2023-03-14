@@ -92,20 +92,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.play_wav_file = AudioUIApp.PLAY_WAV_FILE_STOP
         self.play_audio_mic = AudioUIApp.PLAY_MIC_STOP
 
-        self.period = AudioUIApp.DEFAULT_TIMEOUT_MSG
-        
-        self.form_1 = pyaudio.paInt16 
-        self.chans = 1 
+        # self.stream = None
 
-        self.number_frame = 0
-
-        self.audio = pyaudio.PyAudio()
-        self.source_sample_rate = int(self.audio.get_default_input_device_info()["defaultSampleRate"])
-        self.target_sample_rate = 16000
-        self.chunk = int(AudioUIApp.MSG_LEN_BYTES * 
-                         (self.source_sample_rate / self.target_sample_rate)) # for converting 44100 to 16000 format and payload = 512
-
-        self.stream = None
+        self.period = AudioUIApp.DEFAULT_TIMEOUT_MSG 
         
         self.thread_client_configurations()
 
@@ -177,9 +166,10 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.play_wav_file = AudioUIApp.PLAY_WAV_FILE_STOP
         self.play_audio_mic = AudioUIApp.PLAY_MIC_STOP
         self.close_file()
-        self.disable_mic()
+        self._microphone.close()
+        # self.disable_mic()
         # self.stream.close()
-        self.audio.terminate()
+        # self.audio.terminate()
         
     def load_wav_file_handler(self):
         logger.info("Load wav file handler")
@@ -224,7 +214,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.thr_client_tx_should_work = False
         self.thr_client_rx_should_work = False
         self.connection = False
-
         
         if self.socket is None:
             pass
@@ -244,11 +233,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         self._microphone.disable()
 
-        # if self.stream is None:
-        #     pass
-        # else:
-        #     self.stream.stop_stream()
-        #     self.stream.close()
 
 
     def change_mode_handler(self):
@@ -345,13 +329,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         if self.play_audio_mic == AudioUIApp.PLAY_MIC_STOP:
 
-            # self.stream = self.audio.open(format=self.form_1, rate=self.source_sample_rate,
-            #     channels=self.chans, input=True,
-            #     frames_per_buffer=self.chunk, start=True)
-
             self._microphone.enable()
 
-            # Event().wait(0.3)
             self.play_audio_mic = AudioUIApp.PLAY_MIC_PLAYING
             logger.debug("Recording")
             self.btn_play_mic.setText("Stop")
@@ -361,7 +340,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
             self.disable_mic()
 
-            # Event().wait(0.1)
             logger.debug("Stop recording")
             self.set_text_browser(f"Microphone stop recording")
 
@@ -465,15 +443,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     message = message.astype(np.int16)
                     self.socket.send(message)
 
-                    # if self.stream.is_active():
-                    #     data = self.stream.read(self.chunk)
-                    #     message = np.frombuffer(data, dtype=np.int16)
-                    #     number_of_samples = round(len(message) * self.target_sample_rate / self.source_sample_rate)
-                    #     message = sps.resample(message, number_of_samples, window="bohman")
-                    #     message = AudioUIApp.set_volume(message, self.volume)
-                    #     message = message.astype(np.int16)
-                    #     self.socket.send(message)
-
                 except AttributeError as ex:
                     logger.error(f"AttributeError MIC. {ex}")
                 except OSError as ex:
@@ -527,14 +496,12 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     self.set_text_browser(f"Upload successful")
                     self.is_file_open = True
 
-
-
                 except FileNotFoundError as ex:
-                    self.logger.error(f"File open error. {ex}")
+                    logger.error(f"File open error. {ex}")
                     self.text_brows_info.append(f"File not found!")
                     self.is_file_open = False
                 except ValueError as ex:
-                    self.logger.error(f"Parse WAV file error. {ex}")
+                    logger.error(f"Parse WAV file error. {ex}")
                     self.text_brows_info.append(f"File must have the format '.wav'.")
                     self.is_file_open = False
 

@@ -26,7 +26,7 @@ class Converter:
 
     
     @staticmethod
-    def map_int(self, x, in_min=0, in_max=255, out_min=-32768, out_max=32767):
+    def map_int(x, in_min=0, in_max=255, out_min=-32768, out_max=32767):
         return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
     
     @staticmethod
