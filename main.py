@@ -77,6 +77,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.setWindowIcon(QtGui.QIcon(get_correct_path("icons\\mic_icon.jpg")))
 
         self._converter = Converter(True, 16000)
+        self._file_audio = FileAudio()
 
         self.socket = None
 
@@ -193,14 +194,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
     
     def parse_wav_file(self, file_name_url):
+        pass
 
-        logger.info("Parse wav file")
-
-        self.data_audio_file = None
-        self.number_frame = 0
-        sample_rate, data = wavfile.read(file_name_url)
-
-        self.data_audio_file = self._converter.prepare_wav_file(data, sample_rate)
         
 
 
@@ -436,18 +431,12 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
             if self.thr_client_tx_should_work is True and self.play_wav_file == AudioUIApp.PLAY_WAV_FILE_PLAYING and \
                 self.is_file_open is True and self.current_mode == AudioUIApp.CURRENT_MODE_FILE:
-                
-                message = self.data_audio_file[self.number_frame * AudioUIApp.MSG_LEN_BYTES: (self.number_frame + 1) * AudioUIApp.MSG_LEN_BYTES]
 
-                if self.number_frame >= int(len(self.data_audio_file) / AudioUIApp.MSG_LEN_BYTES):
-                    self.number_frame = 0
-
+                message = self._file_audio.get_next_chunk_data(AudioUIApp.MSG_LEN_BYTES)
                 message = AudioUIApp.set_volume(message, self.volume)
                 message = message.astype(np.int16)
-
                 try:
                     self.socket.send(message)
-                    self.number_frame += 1
                 except socket.timeout as ex:
                     self.logger.error(f"Send message error. {ex}")
 
@@ -506,17 +495,21 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             if self.thr_file_preparing_should_work is True:
 
                 try:
-                    # self.btn_play_wav_file.setEnabled(False)
 
-                    # self.text_brows_info.append("Wait for the upload to complete")
                     self.set_text_browser(f"File name: {self.file_name}")
                     self.set_text_browser(f"Wait for the upload to complete")
-                    self.parse_wav_file(self.file_name_url)
-                    # self.text_brows_info.append("Upload successful")
+
+                    self._file_audio.open(self.file_name_url)
+                    data, sample_rate = self._file_audio.read_all()
+                    self._file_audio.close()
+                    
+                    prepared_data = self._converter.prepare_wav_file(data, sample_rate)
+                    self._file_audio.set_prepared_all_data(prepared_data)
+                    
                     self.set_text_browser(f"Upload successful")
                     self.is_file_open = True
 
-                    # self.btn_play_wav_file.setEnabled(True)
+
 
                 except FileNotFoundError as ex:
                     self.logger.error(f"File open error. {ex}")
