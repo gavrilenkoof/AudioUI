@@ -319,20 +319,20 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         else:
             def_val = AudioUIApp.DEFAULT_TIMEOUT_MSG
 
-        if val >= 0 and val <= 20:
-            def_val = def_val - 3 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA      
-        elif val >= 20 and val < 30:
-            def_val = def_val - 2 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
+        if val >= 0 and val <= 30:
+            def_val = def_val - 4 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA      
         elif val >= 30 and val < 40:
+            def_val = def_val - 3 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
+        elif val >= 40 and val < 50:
             def_val = def_val - 1 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
-        elif val >= 40 and val < 60:
+        elif val >= 50 and val < 70:
             def_val = def_val
-        elif val >= 60 and val < 70:
-            def_val = def_val + 1 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
         elif val >= 70 and val < 80:
-            def_val = def_val + 2 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
-        elif val >= 80:
-            def_val = def_val + 2 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA   
+            def_val = def_val + 1 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
+        elif val >= 80 and val < 90:
+            def_val = def_val + 3 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
+        elif val >= 90:
+            def_val = def_val + 4 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA   
 
 
         if def_val <= 0:
