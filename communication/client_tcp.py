@@ -17,6 +17,9 @@ class ClientTCP:
         self._timeout = timeout
         self._connected = False
 
+    def get_connection_status(self):
+        return self._connected
+
     def connect(self, ip, port):
         self._ip = ip
         self._port = port

@@ -20,15 +20,22 @@ class Microphone:
         self._stream = None
         self._in_use = False
 
+        self._is_connect = False
+
     def get_source_sample_rate(self):
         return self._source_sample_rate
     
+    def get_status_connect(self) -> bool:
+        return self._is_connect
+    
     def enable(self):
+        self._is_connect = True
         self._stream = self._audio.open(format=self._format, rate=self._source_sample_rate,
                                         channels=self._channel, input=True,
                                         start=True)
         
     def disable(self):
+        self._is_connect = False
         if self._stream is not None:
             self._stream.stop_stream()
             self._stream.close()

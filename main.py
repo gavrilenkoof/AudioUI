@@ -81,22 +81,12 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self._connection = ClientTCP(address_family=socket.AF_INET, socket_kind=socket.SOCK_STREAM, 
                                     timeout=1)
 
-        # self.socket = None
-
-        self.connection = False
-
         self.tcp_ip = TCP_IP
         self.tcp_port = TCP_PORT
-
-
-        self.is_file_open = False
-        self.is_connect_mic = False
-        self.file_name_url = ''
 
         self.current_mode = AudioUIApp.CURRENT_MODE_FILE
         self.play_wav_file = AudioUIApp.PLAY_WAV_FILE_STOP
         self.play_audio_mic = AudioUIApp.PLAY_MIC_STOP
-
 
         self.period = AudioUIApp.DEFAULT_TIMEOUT_MSG 
         
@@ -150,7 +140,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.thr_client_rx_should_work = False
         self.thr_client_tx_should_work = False
         self.thr_file_preparing_should_work = False
-        self.connection = False
 
         self.set_text_browser(f"Reboot server")
         self.close_file()
@@ -159,9 +148,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         try:
             self._connection.send("reboot".encode("utf-8"))
         except OSError as ex:
-            pass
+            logger.error(f"Send reboot error: {ex}")
         except AttributeError as ex:
-            pass
+            logger.error(f"Send reboot error: {ex}")
         
 
     def closeEvent(self, event):
@@ -171,9 +160,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.play_audio_mic = AudioUIApp.PLAY_MIC_STOP
         self.close_file()
         self._microphone.close()
-        # self.disable_mic()
-        # self.stream.close()
-        # self.audio.terminate()
+
         
     def load_wav_file_handler(self):
         logger.info("Load wav file handler")
@@ -206,27 +193,15 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
     def close_file(self):
         logger.info("Close file")
-        self.is_file_open = False
         self._file_audio.close()
         self.play_wav_file = AudioUIApp.PLAY_WAV_FILE_STOP
         self.btn_play_wav_file.setText("Play file")
 
 
     def close_connection(self):
-        # logger.info("Close connection")
 
         self.thr_client_tx_should_work = False
         self.thr_client_rx_should_work = False
-        self.connection = False
-        
-        # if self.socket is None:
-        #     pass
-        # else:
-        #     try:
-        #         self.socket.shutdown(socket.SHUT_RDWR)
-        #     except OSError as ex:
-        #         logger.error(f"Shutdown error. {ex}")
-        #     self.socket.close()
 
         self._connection.disconnect()
 
@@ -270,9 +245,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         Event().wait(0.1)
 
     def set_text_browser(self, text):
-        self.text_brows_info.append(text)
         self.text_brows_info.moveCursor(QtGui.QTextCursor.End)
-
+        self.text_brows_info.append(text)
+        
 
     def thread_client_configurations(self):
 
@@ -283,7 +258,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.thr_client_rx_should_work = False
         self.thr_client_tx_should_work = False
         self.thr_file_preparing_should_work = False
-        self.connection = False
 
         self.thr_client_rx.start()
         self.thr_client_tx.start()
@@ -297,13 +271,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         try:
             self.tcp_ip, self.tcp_port = self.get_ip_address()
-            # self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            # self.socket.settimeout(1.5)
-            # self.socket.connect((self.tcp_ip, self.tcp_port))
             self._connection.connect(self.tcp_ip, self.tcp_port)
             self.thr_client_tx_should_work = True
             self.thr_client_rx_should_work = True
-            self.connection = True
             self.set_text_browser(f"Connection to {self.tcp_ip}:{self.tcp_port} successfully")
             logger.debug(f"Connection to {self.tcp_ip}:{self.tcp_port} successfully")
         except socket.timeout as ex:
@@ -337,7 +307,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         if self.play_audio_mic == AudioUIApp.PLAY_MIC_STOP:
 
             self._microphone.enable()
-
             self.play_audio_mic = AudioUIApp.PLAY_MIC_PLAYING
             logger.debug("Recording")
             self.btn_play_mic.setText("Stop")
@@ -412,13 +381,12 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             message = "0".encode("utf-8")
 
             if self.thr_client_tx_should_work is True and self.play_wav_file == AudioUIApp.PLAY_WAV_FILE_PLAYING and \
-                self.is_file_open is True and self.current_mode == AudioUIApp.CURRENT_MODE_FILE:
+                self._file_audio.get_ready_upload_all_data() and self.current_mode == AudioUIApp.CURRENT_MODE_FILE:
 
                 message = self._file_audio.get_next_chunk_data(AudioUIApp.MSG_LEN_BYTES)
                 message = AudioUIApp.set_volume(message, self.volume)
                 message = message.astype(np.int16)
                 try:
-                    # self.socket.send(message)
                     self._connection.send(message)
                 except socket.timeout as ex:
                     self.logger.error(f"Send message error. {ex}")
@@ -426,17 +394,13 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 period = self.get_time_period_message()
                 Event().wait(period)
 
-
-
             elif self.thr_client_tx_should_work is True and self.play_audio_mic == AudioUIApp.PLAY_MIC_PLAYING and \
-                 self.current_mode == AudioUIApp.CURRENT_MODE_MIC:
+                 self.current_mode == AudioUIApp.CURRENT_MODE_MIC and self._microphone.get_status_connect():
                 
                 chunk = int(self._microphone.MSG_LEN_BYTES * 
                             (self._microphone.get_source_sample_rate() / self._converter.get_target_sample_rate()))
 
                 try:
-
-
                     message = self._microphone.read(chunk)
 
                     if message is None:
@@ -448,7 +412,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     message = sps.resample(message, number_of_samples, window="bohman")
                     message = AudioUIApp.set_volume(message, self.volume)
                     message = message.astype(np.int16)
-                    # self.socket.send(message)
                     self._connection.send(message)
 
                 except AttributeError as ex:
@@ -467,10 +430,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
     def rx_task(self):
         while True:
-            if self.thr_client_rx_should_work is True and self.connection is True:
+            if self.thr_client_rx_should_work is True and self._connection.get_connection_status() is True:
 
                 try:
-                    # recv_data = self.socket.recv(32)
                     recv_data = self._connection.read(32)
                     if recv_data is not None:
                         self.parse_answer_server(recv_data)
@@ -503,16 +465,13 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     self._file_audio.set_prepared_all_data(prepared_data)
                     
                     self.set_text_browser(f"Upload successful")
-                    self.is_file_open = True
 
                 except FileNotFoundError as ex:
                     logger.error(f"File open error. {ex}")
                     self.text_brows_info.append(f"File not found!")
-                    self.is_file_open = False
                 except ValueError as ex:
                     logger.error(f"Parse WAV file error. {ex}")
                     self.text_brows_info.append(f"File must have the format '.wav'.")
-                    self.is_file_open = False
 
                 self.thr_file_preparing_should_work = False
 
