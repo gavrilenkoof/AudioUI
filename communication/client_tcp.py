@@ -67,3 +67,15 @@ class ClientTCP:
 
     def _send_data(self, data):
         self._socket.send(data)
+
+
+    def parse_answer_tcp_percent(self, data):
+        new_data = data.decode("utf-8")
+
+        pos_start = new_data.find("per:")
+        pos_end = new_data.find(",")
+        val = 50
+        if pos_start != -1 and pos_end != -1:
+            val = int(new_data[pos_start + 4:pos_end])
+
+        return val

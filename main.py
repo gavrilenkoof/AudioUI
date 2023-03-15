@@ -81,9 +81,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self._connection = ClientTCP(address_family=socket.AF_INET, socket_kind=socket.SOCK_STREAM, 
                                     timeout=1)
 
-        self.tcp_ip = TCP_IP
-        self.tcp_port = TCP_PORT
-
         self.current_mode = AudioUIApp.CURRENT_MODE_FILE
         self.play_wav_file = AudioUIApp.PLAY_WAV_FILE_STOP
         self.play_audio_mic = AudioUIApp.PLAY_MIC_STOP
@@ -171,24 +168,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.file_name = QUrl.fromLocalFile(self.file_name_url).fileName()
         self.thr_file_preparing_should_work = True
 
-
-
-    
     @staticmethod
     def set_volume(x, volume):
         return x * volume
-
-    @staticmethod
-    def map_int(x, in_min=0, in_max=255, out_min=-32768, out_max=32767):
-        return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
-    
-    @staticmethod
-    def normalize(data, max_val_input, max_range_val):
-        return (data / max_val_input) * max_range_val 
-
-    @staticmethod
-    def db_to_float(headroom=0.1):
-        return 10 ** (headroom / 20)
 
 
     def close_file(self):
@@ -270,16 +252,16 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.close_connection()
 
         try:
-            self.tcp_ip, self.tcp_port = self.get_ip_address()
-            self._connection.connect(self.tcp_ip, self.tcp_port)
+            tcp_ip, tcp_port = self.get_ip_address()
+            self._connection.connect(tcp_ip, tcp_port)
             self.thr_client_tx_should_work = True
             self.thr_client_rx_should_work = True
-            self.set_text_browser(f"Connection to {self.tcp_ip}:{self.tcp_port} successfully")
-            logger.debug(f"Connection to {self.tcp_ip}:{self.tcp_port} successfully")
+            self.set_text_browser(f"Connection to {tcp_ip}:{tcp_port} successfully")
+            logger.debug(f"Connection to {tcp_ip}:{tcp_port} successfully")
         except socket.timeout as ex:
             logger.error(f"Socket.timeout. Connection failed: {ex}")
             self.close_connection()
-            self.set_text_browser(f"Connection failed. Address {self.tcp_ip}:{self.tcp_port}")
+            self.set_text_browser(f"Connection failed. Address {tcp_ip}:{tcp_port}")
         except IndexError as ex:
             logger.error(f"IndexError. {ex}")
             self.close_connection()
@@ -326,8 +308,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         list_address = text_server_address.split(":")
         return list_address[0], int(list_address[1])
 
-    def compress_val(self):
-        return 0
 
     def get_time_period_message(self):
         return self.period
@@ -335,9 +315,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
     def set_time_period_message(self, value):
         self.period = value
 
-    def parse_answer_server(self, data):
-        data = data.decode("utf-8")
-
+    def set_timeout_period(self, val):
         def_val = AudioUIApp.DEFAULT_TIMEOUT_MSG
 
         if self.current_mode == AudioUIApp.CURRENT_MODE_FILE:
@@ -346,13 +324,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             def_val = AudioUIApp.DEFAULT_MIC_TIMEOUT_MSG
         else:
             def_val = AudioUIApp.DEFAULT_TIMEOUT_MSG
-            
-        pos_start = data.find("per:")
-        pos_end = data.find(",")
-        val = 50
-        if pos_start != -1 and pos_end != -1:
-            val = int(data[pos_start + 4:pos_end])
-        
+
         if val >= 0 and val <= 20:
             self.set_time_period_message(def_val - 3 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA)
         elif val >= 20 and val < 30:
@@ -366,10 +338,10 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         elif val >= 70 and val < 80:
             self.set_time_period_message(def_val + 2 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA)
         elif val >= 80:
-            self.set_time_period_message(def_val + 3 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA)
+            self.set_time_period_message(def_val + 3 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA)      
 
-            
         logger.debug(f"{val}")
+          
 
  
     def tx_task(self):
@@ -397,7 +369,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             elif self.thr_client_tx_should_work is True and self.play_audio_mic == AudioUIApp.PLAY_MIC_PLAYING and \
                  self.current_mode == AudioUIApp.CURRENT_MODE_MIC and self._microphone.get_status_connect():
                 
-                chunk = int(self._microphone.MSG_LEN_BYTES * 
+                chunk = int(AudioUIApp.MSG_LEN_BYTES * 
                             (self._microphone.get_source_sample_rate() / self._converter.get_target_sample_rate()))
 
                 try:
@@ -407,7 +379,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                         continue
 
                     message = np.frombuffer(message, dtype=np.int16)
-
                     number_of_samples = round(len(message) * self._converter.get_target_sample_rate() / self._microphone.get_source_sample_rate())
                     message = sps.resample(message, number_of_samples, window="bohman")
                     message = AudioUIApp.set_volume(message, self.volume)
@@ -435,7 +406,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 try:
                     recv_data = self._connection.read(32)
                     if recv_data is not None:
-                        self.parse_answer_server(recv_data)
+                        val = self._connection.parse_answer_tcp_percent(recv_data)
+                        self.set_timeout_period(val)
 
                 except socket.timeout as ex:
                     continue

@@ -7,7 +7,6 @@ logger = logging.getLogger(__name__.replace('__', ''))
 
 class Microphone:
 
-    MSG_LEN_BYTES = 512
     
     def __init__(self, channel, format):
         super(Microphone, self).__init__()
