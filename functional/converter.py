@@ -18,8 +18,13 @@ class Converter:
         # self.form = format
 
 
-    def convert_mic(self):
-        pass
+    def convert_mic(self, message, source_sample_rate):
+
+        number_of_samples = round(len(message) * self.get_target_sample_rate() / source_sample_rate)
+        message = sps.resample(message, number_of_samples, window="bohman")
+
+        return message
+        
 
     def covert_file_audio(self):
         pass

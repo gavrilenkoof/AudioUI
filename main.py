@@ -55,7 +55,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
     DEFAULT_TIMEOUT_MSG = 0.030
     # DEFAULT_TIMEOUT_MSG = 0.015
     DEFAULT_TIMEOUT_MSG_DELTA = 0.006
-    DEFAULT_MIC_TIMEOUT_MSG = 0.005
+    DEFAULT_MIC_TIMEOUT_MSG = 0.003
 
     MSG_LEN_BYTES = 512 # 1024 for 16sign
 
@@ -227,8 +227,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         Event().wait(0.1)
 
     def set_text_browser(self, text):
-        self.text_brows_info.moveCursor(QtGui.QTextCursor.End)
         self.text_brows_info.append(text)
+        self.text_brows_info.moveCursor(QtGui.QTextCursor.End)
         
 
     def thread_client_configurations(self):
@@ -326,19 +326,26 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             def_val = AudioUIApp.DEFAULT_TIMEOUT_MSG
 
         if val >= 0 and val <= 20:
-            self.set_time_period_message(def_val - 3 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA)
+            def_val = def_val - 3 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA      
         elif val >= 20 and val < 30:
-            self.set_time_period_message(def_val - 2 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA)
+            def_val = def_val - 2 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
         elif val >= 30 and val < 40:
-            self.set_time_period_message(def_val - AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA)
+            def_val = def_val - 1 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
         elif val >= 40 and val < 60:
-            self.set_time_period_message(def_val)
+            def_val = def_val
         elif val >= 60 and val < 70:
-            self.set_time_period_message(def_val + AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA)
+            def_val = def_val + 1 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
         elif val >= 70 and val < 80:
-            self.set_time_period_message(def_val + 2 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA)
+            def_val = def_val + 2 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
         elif val >= 80:
-            self.set_time_period_message(def_val + 3 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA)      
+            def_val = def_val + 2 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA   
+
+
+        if def_val <= 0:
+            def_val = 0.001
+            logger.debug(f"new period < 0. Set 0.001 ms")
+
+        self.set_time_period_message(def_val)
 
         logger.debug(f"{val}")
           
@@ -361,7 +368,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 try:
                     self._connection.send(message)
                 except socket.timeout as ex:
-                    self.logger.error(f"Send message error. {ex}")
+                    logger.error(f"Send message error. {ex}")
 
                 period = self.get_time_period_message()
                 Event().wait(period)
@@ -379,8 +386,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                         continue
 
                     message = np.frombuffer(message, dtype=np.int16)
-                    number_of_samples = round(len(message) * self._converter.get_target_sample_rate() / self._microphone.get_source_sample_rate())
-                    message = sps.resample(message, number_of_samples, window="bohman")
+                    message = self._converter.convert_mic(message, self._microphone.get_source_sample_rate())
                     message = AudioUIApp.set_volume(message, self.volume)
                     message = message.astype(np.int16)
                     self._connection.send(message)
@@ -389,6 +395,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     logger.error(f"AttributeError MIC. {ex}")
                 except OSError as ex:
                     logger.error(f"OSError MIC. {ex}")
+
+
 
                 Event().wait(AudioUIApp.DEFAULT_MIC_TIMEOUT_MSG)
 
