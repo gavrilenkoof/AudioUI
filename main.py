@@ -1,7 +1,6 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QApplication, QFileDialog
 from PyQt5.QtCore import QUrl
-# from PyQt5.QtGui import QIcon
 
 import sys
 import os
@@ -13,7 +12,6 @@ from threading import Thread, Event
 import socket
 import pyaudio
 
-import scipy.signal as sps
 import numpy as np
 
 from functional.microphone import Microphone
@@ -53,12 +51,10 @@ if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
 class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
     DEFAULT_TIMEOUT_MSG = 0.030
-    # DEFAULT_TIMEOUT_MSG = 0.015
     DEFAULT_TIMEOUT_MSG_DELTA = 0.006
     DEFAULT_MIC_TIMEOUT_MSG = 0.003
 
     MSG_LEN_BYTES = 512 # 1024 for 16sign
-
 
     CURRENT_MODE_FILE = 1
     CURRENT_MODE_MIC = 2 
@@ -84,11 +80,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.current_mode = AudioUIApp.CURRENT_MODE_FILE
         self.play_wav_file = AudioUIApp.PLAY_WAV_FILE_STOP
         self.play_audio_mic = AudioUIApp.PLAY_MIC_STOP
-
         self.period = AudioUIApp.DEFAULT_TIMEOUT_MSG 
         
         self.thread_client_configurations()
-
         self.widget_adjust()
         self.widget_functional()
     
