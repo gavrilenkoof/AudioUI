@@ -16,6 +16,10 @@ class FileAudio:
 
         self._prepared_all_data = None
 
+
+
+        
+
     def open(self, file_name_url):
         self._file_name_url = file_name_url
 

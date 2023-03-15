@@ -1,7 +1,7 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QApplication, QFileDialog
 from PyQt5.QtCore import QUrl
-from PyQt5.QtGui import QIcon
+# from PyQt5.QtGui import QIcon
 
 import sys
 import os
@@ -19,6 +19,7 @@ import numpy as np
 from functional.microphone import Microphone
 from functional.file_audio import FileAudio
 from functional.converter import Converter
+from communication.client_tcp import ClientTCP
 
 
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG,
@@ -71,15 +72,19 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         super(AudioUIApp, self).__init__(parent)
         self.setupUi(self)
 
+        self.setWindowTitle('Audio')
         self.setWindowIcon(QtGui.QIcon(get_correct_path("icons\\mic_icon.jpg")))
 
         self._converter = Converter(True, 16000)
         self._file_audio = FileAudio()
         self._microphone = Microphone(1, pyaudio.paInt16)
+        self._connection = ClientTCP(address_family=socket.AF_INET, socket_kind=socket.SOCK_STREAM, 
+                                    timeout=1)
 
-        self.socket = None
+        # self.socket = None
 
         self.connection = False
+
         self.tcp_ip = TCP_IP
         self.tcp_port = TCP_PORT
 
@@ -92,7 +97,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.play_wav_file = AudioUIApp.PLAY_WAV_FILE_STOP
         self.play_audio_mic = AudioUIApp.PLAY_MIC_STOP
 
-        # self.stream = None
 
         self.period = AudioUIApp.DEFAULT_TIMEOUT_MSG 
         
@@ -153,7 +157,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.disable_mic()
 
         try:
-            self.socket.send("reboot".encode("utf-8"))
+            self._connection.send("reboot".encode("utf-8"))
         except OSError as ex:
             pass
         except AttributeError as ex:
@@ -209,20 +213,22 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
 
     def close_connection(self):
-        logger.info("Close connection")
+        # logger.info("Close connection")
 
         self.thr_client_tx_should_work = False
         self.thr_client_rx_should_work = False
         self.connection = False
         
-        if self.socket is None:
-            pass
-        else:
-            try:
-                self.socket.shutdown(socket.SHUT_RDWR)
-            except OSError as ex:
-                logger.error(f"Shutdown error. {ex}")
-            self.socket.close()
+        # if self.socket is None:
+        #     pass
+        # else:
+        #     try:
+        #         self.socket.shutdown(socket.SHUT_RDWR)
+        #     except OSError as ex:
+        #         logger.error(f"Shutdown error. {ex}")
+        #     self.socket.close()
+
+        self._connection.disconnect()
 
     def disable_mic(self):
         logger.info("Disable mic")
@@ -291,9 +297,10 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         try:
             self.tcp_ip, self.tcp_port = self.get_ip_address()
-            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.socket.settimeout(1.5)
-            self.socket.connect((self.tcp_ip, self.tcp_port))
+            # self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            # self.socket.settimeout(1.5)
+            # self.socket.connect((self.tcp_ip, self.tcp_port))
+            self._connection.connect(self.tcp_ip, self.tcp_port)
             self.thr_client_tx_should_work = True
             self.thr_client_rx_should_work = True
             self.connection = True
@@ -393,7 +400,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             self.set_time_period_message(def_val + 3 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA)
 
             
-        # print(f"pers: {val}")
         logger.debug(f"{val}")
 
  
@@ -412,7 +418,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 message = AudioUIApp.set_volume(message, self.volume)
                 message = message.astype(np.int16)
                 try:
-                    self.socket.send(message)
+                    # self.socket.send(message)
+                    self._connection.send(message)
                 except socket.timeout as ex:
                     self.logger.error(f"Send message error. {ex}")
 
@@ -441,7 +448,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     message = sps.resample(message, number_of_samples, window="bohman")
                     message = AudioUIApp.set_volume(message, self.volume)
                     message = message.astype(np.int16)
-                    self.socket.send(message)
+                    # self.socket.send(message)
+                    self._connection.send(message)
 
                 except AttributeError as ex:
                     logger.error(f"AttributeError MIC. {ex}")
@@ -462,8 +470,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             if self.thr_client_rx_should_work is True and self.connection is True:
 
                 try:
-                    recv_data = self.socket.recv(32)
-                    if recv_data != "":
+                    # recv_data = self.socket.recv(32)
+                    recv_data = self._connection.read(32)
+                    if recv_data is not None:
                         self.parse_answer_server(recv_data)
 
                 except socket.timeout as ex:
