@@ -77,7 +77,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self._file_audio = FileAudio()
         self._microphone = Microphone(1, pyaudio.paInt16)
         self._connection = ClientTCP(address_family=socket.AF_INET, socket_kind=socket.SOCK_STREAM, 
-                                    timeout=1)
+                                    timeout=0.5)
 
         self.current_mode = AudioUIApp.CURRENT_MODE_FILE
         self.play_wav_file = AudioUIApp.PLAY_WAV_FILE_STOP
@@ -142,8 +142,10 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             self._connection.send("reboot".encode("utf-8"))
         except OSError as ex:
             logger.error(f"Send reboot error: {ex}")
+            self.set_text_browser(f"Send reboot error")
         except AttributeError as ex:
             logger.error(f"Send reboot error: {ex}")
+            self.set_text_browser(f"Send reboot error")
         
 
     def closeEvent(self, event):
@@ -368,8 +370,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 try:
                     self._connection.send(message)
                 except socket.timeout as ex:
-                    logger.error(f"Send message error. {ex}")
-                    self.set_text_browser(f"Send message error!")
+                    logger.error(f"Send audio error. {ex}")
+                    self.set_text_browser(f"Send audio error!")
 
                 period = self.get_time_period_message()
                 Event().wait(period)
@@ -392,20 +394,18 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     message = message.astype(np.int16)
                     self._connection.send(message)
 
+                except socket.timeout as ex:
+                    logger.error(f"Send microphone data error. {ex}")
+                    self.set_text_browser(f"Send microphone data error.!")
                 except AttributeError as ex:
                     logger.error(f"AttributeError MIC. {ex}")
                 except OSError as ex:
                     logger.error(f"OSError MIC. {ex}")
-                except socket.timeout as ex:
-                    logger.error(f"Send message error. {ex}")
-                    self.set_text_browser(f"Send message error!")
-
 
 
                 Event().wait(AudioUIApp.DEFAULT_MIC_TIMEOUT_MSG)
 
             else:
-                # time_period_message += idle_period
                 try:
                     if time.time() - time_last_send_idle >= period_send_idle:
                         time_last_send_idle = time.time()
@@ -413,13 +413,11 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 except AttributeError as ex:
                     logger.error(f"AttributeError MIC. {ex}")
                 except socket.timeout as ex:
-                    logger.error(f"Send message error. {ex}")
+                    logger.error(f"Send idle error. {ex}")
+                    self.set_text_browser(f"Connection server lost! Try to reconnect or reboot server!")
                 except ConnectionResetError as ex:
                     logger.error(f"Send message error. {ex}")
-                    self.set_text_browser(f"Connection reset error. Restart payload")
-
-                # Event().wait(idle_period)
-
+                    self.set_text_browser(f"Connection reset error. Reboot power")
 
                 Event().wait(idle_period)
 
