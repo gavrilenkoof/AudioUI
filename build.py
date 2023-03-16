@@ -25,7 +25,7 @@ exe = Executable(script='main.py',
                 )
 
 setup(  name = "AudioUI",
-        version = "1.0.4",
+        version = "1.0.5",
         description = "Powerfull Calculator for all plattforms",
         executables = [exe],
         options = {'bdist_msi': bdist_msi_options})

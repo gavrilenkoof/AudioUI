@@ -1,5 +1,6 @@
 import socket
 import logging
+import re
 
 logger = logging.getLogger(__name__.replace('__', ''))
 
@@ -72,10 +73,17 @@ class ClientTCP:
     def parse_answer_tcp_percent(self, data):
         new_data = data.decode("utf-8")
 
-        pos_start = new_data.find("per:")
-        pos_end = new_data.find(",")
+        # pos_start = new_data.find("per:")
+        # pos_end = new_data.find(",")
+        # val = 50
+        # if pos_start != -1 and pos_end != -1:
+        #     val = int(new_data[pos_start + 4:pos_end])
         val = 50
-        if pos_start != -1 and pos_end != -1:
-            val = int(new_data[pos_start + 4:pos_end])
+        match = re.search(r'per:\d+', new_data)
+        try:
+            val = int(match[0][4:])
+        except TypeError as ex:
+            logger.error(f"Parse percent error: {ex}. Match:{match}. Set val = 50")
+
 
         return val
