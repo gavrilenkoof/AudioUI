@@ -19,6 +19,8 @@ from functional.file_audio import FileAudio
 from functional.converter import Converter
 from communication.client_tcp import ClientTCP
 
+import time
+
 
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG,
                     format='%(asctime)s | %(levelname)s | %(name)s | %(message)s')
@@ -347,11 +349,15 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
  
     def tx_task(self):
 
-        idle_period = 0.01
+        idle_period = 0.03
+
+        time_last_send_idle = time.time()
+        period_send_idle = 0.5 #sec
 
         while True:
 
-            message = "0".encode("utf-8")
+            # message = "0".encode("utf-8")
+            message = "idle".encode("utf-8")
 
             if self.thr_client_tx_should_work is True and self.play_wav_file == AudioUIApp.PLAY_WAV_FILE_PLAYING and \
                 self._file_audio.get_ready_upload_all_data() and self.current_mode == AudioUIApp.CURRENT_MODE_FILE:
@@ -396,6 +402,18 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
             else:
                 # time_period_message += idle_period
+                try:
+                    if time.time() - time_last_send_idle >= period_send_idle:
+                        time_last_send_idle = time.time()
+                        self._connection.send(message)
+                except AttributeError as ex:
+                    logger.error(f"AttributeError MIC. {ex}")
+                except socket.timeout as ex:
+                    logger.error(f"Send message error. {ex}")
+
+                # Event().wait(idle_period)
+
+
                 Event().wait(idle_period)
 
             
