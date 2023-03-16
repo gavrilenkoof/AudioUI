@@ -397,7 +397,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     message = AudioUIApp.set_volume(message, self.volume)
                     message = message.astype(np.int16)
                     self._connection.send(message)
-                    
+
                 except BrokenPipeError as ex:
                     logger.error(f"Broken pip error: {ex}")
                     self.set_text_browser(f"Fatal connection lost! Reconnect to server or reboot")
@@ -419,6 +419,11 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     if time.time() - time_last_send_idle >= period_send_idle:
                         time_last_send_idle = time.time()
                         self._connection.send(message)
+
+                except BrokenPipeError as ex:
+                    logger.error(f"Broken pip error: {ex}")
+                    self.set_text_browser(f"Fatal connection lost! Reconnect to server or reboot")
+                    self.close_connection()
                 except AttributeError as ex:
                     logger.error(f"AttributeError MIC. {ex}")
                 except socket.timeout as ex:
