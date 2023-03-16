@@ -435,12 +435,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                         self.set_timeout_period(val)
 
                 except socket.timeout as ex:
-                    continue
-                except:
-                    continue
+                    logger.error(f"Read socket timeout")
 
                 Event().wait(0.001)
-
             else:                
                 Event().wait(0.001)
     
