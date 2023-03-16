@@ -369,6 +369,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     self._connection.send(message)
                 except socket.timeout as ex:
                     logger.error(f"Send message error. {ex}")
+                    self.set_text_browser(f"Send message error!")
 
                 period = self.get_time_period_message()
                 Event().wait(period)
@@ -395,6 +396,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     logger.error(f"AttributeError MIC. {ex}")
                 except OSError as ex:
                     logger.error(f"OSError MIC. {ex}")
+                except socket.timeout as ex:
+                    logger.error(f"Send message error. {ex}")
+                    self.set_text_browser(f"Send message error!")
 
 
 
@@ -410,6 +414,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     logger.error(f"AttributeError MIC. {ex}")
                 except socket.timeout as ex:
                     logger.error(f"Send message error. {ex}")
+                except ConnectionResetError as ex:
+                    logger.error(f"Send message error. {ex}")
+                    self.set_text_browser(f"Connection reset error. Restart payload")
 
                 # Event().wait(idle_period)
 

@@ -19,13 +19,13 @@ base = None
 if sys.platform == "win32":
     base = "Win32GUI"
     
-exe = Executable(script='Audio.py',
+exe = Executable(script='main.py',
                  base=base,
                  icon='icons/mic_icon.ico',
                 )
 
 setup(  name = "AudioUI",
-        version = "1.0.3",
+        version = "1.0.4",
         description = "Powerfull Calculator for all plattforms",
         executables = [exe],
         options = {'bdist_msi': bdist_msi_options})
