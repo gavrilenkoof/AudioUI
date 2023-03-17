@@ -1,19 +1,25 @@
 import sys
 from cx_Freeze import setup, Executable
+from setuptools import find_packages
 
-company_name = 'UVR'
+
+include_files = ["icons"]
+
+company_name = 'UAV'
 product_name = 'AudioUI'
 
 bdist_msi_options = {
     'upgrade_code': '{F46BA620-C027-4E68-9069-5D5D4E1FF30A}',
     'add_to_path': False,
     'initial_target_dir': r'[ProgramFilesFolder]\%s\%s' % (company_name, product_name),
-    }
+}
 
-path = sys.path
 build_exe_options = {
-"path": path,
-"icon": "icons/mic_icon.ico"}
+    'include_files': include_files,
+    'excludes': ['*'],
+    "packages": [], 
+
+}
 
 base = None
 if sys.platform == "win32":
@@ -25,7 +31,11 @@ exe = Executable(script='main.py',
                 )
 
 setup(  name = "AudioUI",
-        version = "1.0.5",
-        description = "Powerfull Calculator for all plattforms",
+        version = "1.1.0",
+        description = "Audio GUI",
         executables = [exe],
-        options = {'bdist_msi': bdist_msi_options})
+        options = {'bdist_msi': bdist_msi_options,
+                   'build_exe': build_exe_options,
+                   }
+
+    )

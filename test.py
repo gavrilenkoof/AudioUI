@@ -1,10 +1,10 @@
-import pyaudio
-import wave
-import audioop
+# import pyaudio
+# import wave
+# import audioop
 
 
-import scipy.signal as sps
-import numpy as np
+# import scipy.signal as sps
+# import numpy as np
  
 source_sample_rate = 44100
 target_sample_rate = 16000

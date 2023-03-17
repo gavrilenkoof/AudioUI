@@ -34,13 +34,15 @@ TCP_IP = '192.168.0.107'
 TCP_PORT = 7
 
 
-def get_correct_path(relative_path):
-    try:
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-
-    return os.path.join(base_path, relative_path)
+def find_data_file(filename):
+    if getattr(sys, "frozen", False):
+        # The application is frozen
+        datadir = os.path.dirname(sys.executable)
+    else:
+        # The application is not frozen
+        # Change this bit to match where you store your data files:
+        datadir = os.path.dirname(__file__)
+    return os.path.join(datadir, filename)
 
 
 if hasattr(QtCore.Qt, 'AA_EnableHighDpiScaling'):
@@ -71,7 +73,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.setupUi(self)
 
         self.setWindowTitle('Audio')
-        self.setWindowIcon(QtGui.QIcon(get_correct_path("icons\\mic_icon.jpg")))
+        self.setWindowIcon(QtGui.QIcon(find_data_file("icons\\mic_icon.jpg")))
 
         self._converter = Converter(True, 16000)
         self._file_audio = FileAudio()
@@ -356,6 +358,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         time_last_send_idle = time.time()
         period_send_idle = 0.5 #sec
 
+        send_error_once = 0
+
         while True:
 
             # message = "0".encode("utf-8")
@@ -369,13 +373,18 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 message = message.astype(np.int16)
                 try:
                     self._connection.send(message)
+                    send_error_once = 0
                 except socket.timeout as ex:
                     logger.error(f"Send audio error. {ex}")
-                    self.set_text_browser(f"Send audio error!")
+                    if send_error_once == 0:
+                        self.set_text_browser(f"Send audio error!")
                 except BrokenPipeError as ex:
                     logger.error(f"Broken pip error: {ex}")
-                    self.set_text_browser(f"Fatal connection lost! Reconnect to server or reboot")
+                    if send_error_once == 0:
+                        self.set_text_browser(f"Fatal connection lost! Reconnect to server or reboot")
                     self.close_connection()
+                finally:
+                    send_error_once = 1
 
                 period = self.get_time_period_message()
                 Event().wait(period)
@@ -400,7 +409,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
                 except BrokenPipeError as ex:
                     logger.error(f"Broken pip error: {ex}")
-                    self.set_text_browser(f"Fatal connection lost! Reconnect to server or reboot")
+                    self.set_text_browser(f"Fatal connection lost! Try to reconnect or reboot server!")
                     self.close_connection()
                 except socket.timeout as ex:
                     logger.error(f"Send microphone data error. {ex}")
@@ -419,19 +428,27 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     if time.time() - time_last_send_idle >= period_send_idle:
                         time_last_send_idle = time.time()
                         self._connection.send(message)
+                        send_error_once = 0
 
                 except BrokenPipeError as ex:
                     logger.error(f"Broken pip error: {ex}")
-                    self.set_text_browser(f"Fatal connection lost! Reconnect to server or reboot")
+                    if send_error_once == 0:
+                        self.set_text_browser(f"Fatal connection lost! Try to reconnect or reboot server!")
                     self.close_connection()
                 except AttributeError as ex:
                     logger.error(f"AttributeError MIC. {ex}")
                 except socket.timeout as ex:
                     logger.error(f"Send idle error. {ex}")
-                    self.set_text_browser(f"Connection server lost! Try to reconnect or reboot server!")
+                    # self.set_text_browser(f"Connection server lost! Try to reconnect or reboot server!")
+                    if send_error_once == 0:
+                        self.set_text_browser(f"Fatal connection lost! Try to reconnect or reboot server!")
                 except ConnectionResetError as ex:
                     logger.error(f"Send message error. {ex}")
-                    self.set_text_browser(f"Connection server lost! Try to reconnect or reboot server!")
+                    # self.set_text_browser(f"Connection server lost! Try to reconnect or reboot server!")
+                    if send_error_once == 0:
+                        self.set_text_browser(f"Fatal connection lost! Try to reconnect or reboot server!")
+                finally:
+                    send_error_once = 1
 
                 Event().wait(idle_period)
 
@@ -439,6 +456,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
 
     def rx_task(self):
+
+        send_error_once = 0
+
         while True:
             if self.thr_client_rx_should_work is True and self._connection.get_connection_status() is True:
 
@@ -447,11 +467,16 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     if recv_data is not None:
                         val = self._connection.parse_answer_tcp_percent(recv_data)
                         self.set_timeout_period(val)
+                        send_error_once = 0
 
                 except socket.timeout as ex:
                     logger.error(f"Read socket timeout")
                 except OSError as ex:
                     logger.error(f"Read OSError. Bad file descriptor: {ex}")
+                    if send_error_once == 0:
+                        self.set_text_browser(f"Fatal connection lost! Try to reconnect or reboot server!")
+                finally:
+                    send_error_once = 1
 
 
                 Event().wait(0.001)
@@ -466,7 +491,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 try:
 
                     self.set_text_browser(f"File name: {self.file_name}")
-                    self.set_text_browser(f"Wait for the upload to complete")
+                    self.set_text_browser(f"Preparing file...")
 
                     self._file_audio.open(self.file_name_url)
                     data, sample_rate = self._file_audio.read_all()
@@ -475,7 +500,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     prepared_data = self._converter.prepare_wav_file(data, sample_rate)
                     self._file_audio.set_prepared_all_data(prepared_data)
                     
-                    self.set_text_browser(f"Upload successful")
+                    self.set_text_browser(f"File is ready!")
 
                 except FileNotFoundError as ex:
                     logger.error(f"File open error. {ex}")
