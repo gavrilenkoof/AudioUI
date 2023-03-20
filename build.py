@@ -2,11 +2,12 @@ import sys
 from cx_Freeze import setup, Executable
 from setuptools import find_packages
 
+HUMAN_FRIENDLY_NAME = "AudioUI"
 
 include_files = ["icons"]
 
 company_name = 'UAV'
-product_name = 'AudioUI'
+product_name = HUMAN_FRIENDLY_NAME
 
 bdist_msi_options = {
     'upgrade_code': '{F46BA620-C027-4E68-9069-5D5D4E1FF30A}',
@@ -27,10 +28,11 @@ if sys.platform == "win32":
     
 exe = Executable(script='main.py',
                  base=base,
+                 shortcutName=HUMAN_FRIENDLY_NAME
                  icon='icons/mic_icon.ico',
                 )
 
-setup(  name = "AudioUI",
+setup(  name = HUMAN_FRIENDLY_NAME,
         version = "1.1.0",
         description = "Audio GUI",
         executables = [exe],
