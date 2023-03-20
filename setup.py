@@ -22,6 +22,24 @@ args = dict(
 )
 
 
+base = "Win32GUI" if sys.platform == "win32" else None
+
+
+if sys.platform.startswith('linux') or sys.platform.startswith('darwin'):
+    args.setdefault('setup_requires', []).append('install_freedesktop')
+
+    # args['desktop_entries'] = {
+    #     HUMAN_FRIENDLY_NAME: {
+    #         'Name': HUMAN_FRIENDLY_NAME,
+    #         'GenericName': HUMAN_FRIENDLY_NAME,
+    #         'Comment': HUMAN_FRIENDLY_NAME,
+    #         'Categories': 'Development;Utility;',
+    #     }
+    # }
+
+    sys.argv.append('install_desktop')
+
+
 
 if ('bdist_msi' in sys.argv) or ('build_exe' in sys.argv):
     import cx_Freeze
@@ -45,7 +63,9 @@ if ('bdist_msi' in sys.argv) or ('build_exe' in sys.argv):
 
     args["executables"] = [
         cx_Freeze.Executable(script="main.py",
-                             base="Win32GUI",
+                            #  base="Win32GUI",
+                            #  base=None,
+                             base=base,
                              icon='icons/mic_icon.ico',
                              shortcut_name=HUMAN_FRIENDLY_NAME,
                              target_name=HUMAN_FRIENDLY_NAME,
@@ -53,3 +73,5 @@ if ('bdist_msi' in sys.argv) or ('build_exe' in sys.argv):
     ]
 
     cx_Freeze.setup(**args)
+
+setup(**args)
