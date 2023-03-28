@@ -27,21 +27,10 @@ base = "Win32GUI" if sys.platform == "win32" else None
 
 if sys.platform.startswith('linux') or sys.platform.startswith('darwin'):
     args.setdefault('setup_requires', []).append('install_freedesktop')
-
-    # args['desktop_entries'] = {
-    #     HUMAN_FRIENDLY_NAME: {
-    #         'Name': HUMAN_FRIENDLY_NAME,
-    #         'GenericName': HUMAN_FRIENDLY_NAME,
-    #         'Comment': HUMAN_FRIENDLY_NAME,
-    #         'Categories': 'Development;Utility;',
-    #     }
-    # }
-
     sys.argv.append('install_desktop')
 
 
-
-if ('bdist_msi' in sys.argv) or ('build_exe' in sys.argv):
+if ('bdist_msi' in sys.argv) or ('build_exe' in sys.argv) or ("bdist_mac" in sys.argv):
     import cx_Freeze
 
     bdist_msi_options = {
@@ -56,9 +45,14 @@ if ('bdist_msi' in sys.argv) or ('build_exe' in sys.argv):
         "packages": [], 
     }
 
+    bdist_mac_options = {
+        "custom_info_plist": [("NSMicrophoneUsageDescription", "Need MIC to app")],
+    }
+
     args['options'] = {
         "bdist_msi": bdist_msi_options,
         "build_exe": build_exe_options,
+        "bdist_mac": bdist_mac_options,
     }
 
     args["executables"] = [
@@ -74,4 +68,4 @@ if ('bdist_msi' in sys.argv) or ('build_exe' in sys.argv):
 
     cx_Freeze.setup(**args)
 
-setup(**args)
+# setup(**args)
