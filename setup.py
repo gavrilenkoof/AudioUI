@@ -19,6 +19,7 @@ args = dict(
     name=HUMAN_FRIENDLY_NAME,
     version=version,
     description="Audio GUI",
+    include_package_data=True,
 )
 
 
@@ -41,12 +42,14 @@ if ('bdist_msi' in sys.argv) or ('build_exe' in sys.argv) or ("bdist_mac" in sys
     build_exe_options = {
         'build_exe': HUMAN_FRIENDLY_NAME_DIR,
         'include_files': include_files,
-        'excludes': ['*'],
+        'zip_include_packages': '*',
+        "zip_exclude_packages": ["scipy"],
+        'excludes': [],
         "packages": [], 
     }
 
     bdist_mac_options = {
-        "custom_info_plist": [("NSMicrophoneUsageDescription", "Need MIC to app")],
+        "plist_items": [("NSMicrophoneUsageDescription", "Need MIC to app")],
     }
 
     args['options'] = {
@@ -57,8 +60,6 @@ if ('bdist_msi' in sys.argv) or ('build_exe' in sys.argv) or ("bdist_mac" in sys
 
     args["executables"] = [
         cx_Freeze.Executable(script="main.py",
-                            #  base="Win32GUI",
-                            #  base=None,
                              base=base,
                              icon='icons/mic_icon.ico',
                              shortcut_name=HUMAN_FRIENDLY_NAME,
