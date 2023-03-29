@@ -49,7 +49,7 @@ if ('bdist_msi' in sys.argv) or ('build_exe' in sys.argv) or ("bdist_mac" in sys
     }
 
     bdist_mac_options = {
-        "plist_items": [("NSMicrophoneUsageDescription", "Need MIC to app")],
+        "plist_items": [("NSMicrophoneUsageDescription", "")],
         "iconfile" : "icons/mic.icns",
     }
 
