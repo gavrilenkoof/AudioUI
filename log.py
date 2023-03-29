@@ -1,14 +1,15 @@
 import logging
 import os
+import time
 
-
+timestr = time.strftime("%Y%m%d-%H%M%S")
 
 _log_format = f"%(asctime)s | [%(levelname)s] |  %(name)s | %(filename)s | %(funcName)s | line:%(lineno)d) | %(message)s"
 
 def get_file_handler():
     if not os.path.isdir("logs"):
         os.mkdir("logs")
-    file_handler = logging.FileHandler("logs/x.log")
+    file_handler = logging.FileHandler(f"logs/{timestr}.log")
     file_handler.setLevel(logging.WARNING)
     file_handler.setFormatter(logging.Formatter(_log_format))
     return file_handler
