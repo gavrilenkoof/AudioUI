@@ -31,7 +31,7 @@ if sys.platform.startswith('linux') or sys.platform.startswith('darwin'):
     sys.argv.append('install_desktop')
 
 
-if ('bdist_msi' in sys.argv) or ('build_exe' in sys.argv) or ("bdist_mac" in sys.argv):
+if ('bdist_msi' in sys.argv) or ('build_exe' in sys.argv) or ("bdist_mac" in sys.argv) or ("bdist_dmg" in sys.argv):
     import cx_Freeze
 
     bdist_msi_options = {
@@ -50,6 +50,10 @@ if ('bdist_msi' in sys.argv) or ('build_exe' in sys.argv) or ("bdist_mac" in sys
 
     bdist_mac_options = {
         "plist_items": [("NSMicrophoneUsageDescription", "Need MIC to app")],
+    }
+
+    bdist_dmg_options = {
+        "applications_shortcut" : True,
     }
 
     args['options'] = {
