@@ -7,7 +7,6 @@ import os
 import AudioUI
 import logging
 
-import wave
 from threading import Thread, Event
 import socket
 import pyaudio
