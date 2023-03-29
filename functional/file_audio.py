@@ -1,8 +1,9 @@
-import logging
 from scipy.io import wavfile
 
 
-logger = logging.getLogger(__name__.replace('__', ''))
+from log import get_logger
+
+logger = get_logger(__name__.replace('__', ''))
 
 
 

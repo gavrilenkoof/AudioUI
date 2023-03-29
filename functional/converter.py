@@ -1,10 +1,11 @@
-import logging
 import pyaudio
 import numpy as np
 import scipy.signal as sps
 
+from log import get_logger
 
-logger = logging.getLogger(__name__.replace('__', ''))
+logger = get_logger(__name__.replace('__', ''))
+
 
 
 
