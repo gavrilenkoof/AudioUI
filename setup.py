@@ -2,7 +2,7 @@ import os
 import sys
 from setuptools import setup
 
-version="1.1.0"
+version="1.1.1"
 upgrade_code = '{F46BA620-C027-4E68-9069-5D5D4E1FF30A}',
 
 HUMAN_FRIENDLY_NAME = 'AudioUI'
@@ -50,7 +50,7 @@ if ('bdist_msi' in sys.argv) or ('build_exe' in sys.argv) or ("bdist_mac" in sys
 
     bdist_mac_options = {
         "plist_items": [("NSMicrophoneUsageDescription", "Need MIC to app")],
-        "iconfile" : "icons/mic_icon.icns",
+        "iconfile" : "icons/mic.icns",
     }
 
     bdist_dmg_options = {
@@ -67,7 +67,7 @@ if ('bdist_msi' in sys.argv) or ('build_exe' in sys.argv) or ("bdist_mac" in sys
     args["executables"] = [
         cx_Freeze.Executable(script="main.py",
                              base=base,
-                             icon='icons/mic_icon.ico',
+                             icon='icons/mic.ico',
                              shortcut_name=HUMAN_FRIENDLY_NAME,
                              target_name=HUMAN_FRIENDLY_NAME,
                              ),

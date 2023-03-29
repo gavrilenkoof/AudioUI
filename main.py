@@ -73,7 +73,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.setupUi(self)
 
         self.setWindowTitle('Audio')
-        self.setWindowIcon(QtGui.QIcon(find_data_file("icons\\mic_icon.jpg")))
+        self.setWindowIcon(QtGui.QIcon(find_data_file("icons\\mic.png")))
 
         self._converter = Converter(True, 16000)
         self._file_audio = FileAudio()
