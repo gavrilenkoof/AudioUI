@@ -50,6 +50,7 @@ if ('bdist_msi' in sys.argv) or ('build_exe' in sys.argv) or ("bdist_mac" in sys
 
     bdist_mac_options = {
         "plist_items": [("NSMicrophoneUsageDescription", "Need MIC to app")],
+        "iconfile" : "icons/mic_icon.icns",
     }
 
     bdist_dmg_options = {
@@ -60,6 +61,7 @@ if ('bdist_msi' in sys.argv) or ('build_exe' in sys.argv) or ("bdist_mac" in sys
         "bdist_msi": bdist_msi_options,
         "build_exe": build_exe_options,
         "bdist_mac": bdist_mac_options,
+        "bdist_dmg": bdist_dmg_options,
     }
 
     args["executables"] = [
