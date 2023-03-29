@@ -5,7 +5,9 @@ from PyQt5.QtCore import QUrl
 import sys
 import os
 import AudioUI
-import logging
+
+from log import get_logger
+
 
 from threading import Thread, Event
 import socket
@@ -21,16 +23,15 @@ from communication.client_tcp import ClientTCP
 import time
 
 
-logging.basicConfig(stream=sys.stderr, level=logging.DEBUG,
-                    format='%(asctime)s | %(levelname)s | %(name)s | %(message)s')
-
-
-logger = logging.getLogger(__name__.replace('__', ''))
-logger.info("Spawned")
 
 
 TCP_IP = '192.168.0.107'
 TCP_PORT = 7
+
+
+logger = get_logger(__name__.replace('__', ''))
+# logger.info("Spawned main")
+
 
 
 def find_data_file(filename):
@@ -467,7 +468,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                         send_error_once = 0
 
                 except socket.timeout as ex:
-                    logger.error(f"Read socket timeout")
+                    if send_error_once == 0:
+                        logger.error(f"Read socket timeout")
                 except OSError as ex:
                     logger.error(f"Read OSError. Bad file descriptor: {ex}")
                     if send_error_once == 0:

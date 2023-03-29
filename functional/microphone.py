@@ -1,8 +1,9 @@
 import pyaudio
-import logging
 
 
-logger = logging.getLogger(__name__.replace('__', ''))
+from log import get_logger
+
+logger = get_logger(__name__.replace('__', ''))
 
 
 class Microphone:
