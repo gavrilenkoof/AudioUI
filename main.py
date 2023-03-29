@@ -377,11 +377,12 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 except socket.timeout as ex:
                     logger.error(f"Send audio error. {ex}")
                     if send_error_once != 0:
+                        logger.error(f"Broken pip error: {ex}")
                         self.set_text_browser(f"Send audio error!")
                         send_error_once -= 1
                 except BrokenPipeError as ex:
-                    logger.error(f"Broken pip error: {ex}")
                     if send_error_once != 0:
+                        logger.error(f"Broken pip error: {ex}")
                         self.set_text_browser(f"Fatal connection lost! Reconnect to server or reboot")
                         send_error_once -= 1
                     self.close_connection()
@@ -409,22 +410,20 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     send_error_once = 1
 
                 except BrokenPipeError as ex:
-                    logger.error(f"Broken pip error: {ex}")
                     if send_error_once != 0:
+                        logger.error(f"Broken pip error: {ex}")
                         self.set_text_browser(f"Fatal connection lost! Try to reconnect or reboot server!")
                         send_error_once -= 1
                     self.close_connection()
                 except socket.timeout as ex:
-                    logger.error(f"Send microphone data error. {ex}")
                     if send_error_once != 0:
+                        logger.error(f"Send microphone data error. {ex}")
                         self.set_text_browser(f"Send microphone data error!")
                         send_error_once -= 1
                 except AttributeError as ex:
                     logger.error(f"AttributeError MIC. {ex}")
                 except OSError as ex:
                     logger.error(f"OSError MIC. {ex}")
-
-
 
                 Event().wait(AudioUIApp.DEFAULT_MIC_TIMEOUT_MSG)
 
@@ -433,20 +432,24 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     if time.time() - time_last_send_idle >= period_send_idle:
                         time_last_send_idle = time.time()
                         self._connection.send(message)
+                        send_error_once = 1
                 except BrokenPipeError as ex:
-                    logger.error(f"Broken pip error: {ex}")
-                    self.set_text_browser(f"Fatal connection lost! Try to reconnect or reboot server!")
+                    if send_error_once != 0:
+                        logger.error(f"Broken pip error: {ex}")
+                        self.set_text_browser(f"Fatal connection lost! Try to reconnect or reboot server!")
                     self.close_connection()
                 except AttributeError as ex:
-                    logger.error(f"AttributeError MIC. {ex}")
+                    logger.debug(f"AttributeError. {ex}")
                 except socket.timeout as ex:
-                    logger.error(f"Send idle error. {ex}")
-                    # self.set_text_browser(f"Connection server lost! Try to reconnect or reboot server!")
-                    self.set_text_browser(f"Fatal connection lost! Try to reconnect or reboot server!")
+                    if send_error_once != 0:
+                        logger.error(f"Send idle error. {ex}")
+                        self.set_text_browser(f"Fatal connection lost! Try to reconnect or reboot server!")
                 except ConnectionResetError as ex:
-                    logger.error(f"Send message error. {ex}")
-                    # self.set_text_browser(f"Connection server lost! Try to reconnect or reboot server!")
-                    self.set_text_browser(f"Fatal connection lost! Try to reconnect or reboot server!")
+                    if send_error_once != 0:
+                        logger.error(f"Send message error. {ex}")
+                        self.set_text_browser(f"Fatal connection lost! Try to reconnect or reboot server!")
+                finally:
+                    send_error_once -= 1
 
                 Event().wait(idle_period)
 
