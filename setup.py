@@ -67,7 +67,7 @@ if ('bdist_msi' in sys.argv) or ('build_exe' in sys.argv) or ("bdist_mac" in sys
     args["executables"] = [
         cx_Freeze.Executable(script="main.py",
                              base=base,
-                             icon='icons/mic.ico',
+                             icon='icons//mic.ico',
                              shortcut_name=HUMAN_FRIENDLY_NAME,
                              target_name=HUMAN_FRIENDLY_NAME,
                              ),
