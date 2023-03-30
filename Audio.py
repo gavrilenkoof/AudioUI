@@ -3,6 +3,8 @@ from PyQt5.QtWidgets import QApplication, QFileDialog
 from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QIcon
 
+from codec.opus_codec import OpusCodec
+
 import sys
 import os
 import AudioUI
@@ -47,7 +49,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
     DEFAULT_TIMEOUT_MSG_DELTA = 0.006
     DEFAULT_MIC_TIMEOUT_MSG = 0.005
 
-    MSG_LEN_BYTES = 512 # 1024 for 16sign
+    MSG_LEN_BYTES = 1920 # 1024 for 16sign
 
 
     CURRENT_MODE_FILE = 1
@@ -65,6 +67,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.setWindowIcon(QtGui.QIcon(get_correct_path("icons\\mic_icon.jpg")))
 
         self.logger = logging.getLogger('Main Window')
+
+
+        self.codec = OpusCodec()
 
         self.socket = None
 
@@ -328,7 +333,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         try:
             self.tcp_ip, self.tcp_port = self.get_ip_address()
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.socket.settimeout(1.5)
+            #self.socket.settimeout()
             self.socket.connect((self.tcp_ip, self.tcp_port))
             self.thr_client_tx_should_work = True
             self.thr_client_rx_should_work = True
@@ -440,11 +445,12 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         idle_period = 0.01
 
+        self.codec.encoder_create("audio",16000,1)
         while True:
 
             message = "0".encode("utf-8")
 
-            if self.thr_client_tx_should_work is True and self.play_wav_file == AudioUIApp.PLAY_WAV_FILE_PLAYING and \
+            if  self.thr_client_tx_should_work is True  and self.play_wav_file == AudioUIApp.PLAY_WAV_FILE_PLAYING and \
                 self.is_file_open is True and self.current_mode == AudioUIApp.CURRENT_MODE_FILE:
                 
                 message = self.data_audio_file[self.number_frame * AudioUIApp.MSG_LEN_BYTES: (self.number_frame + 1) * AudioUIApp.MSG_LEN_BYTES]
@@ -453,7 +459,10 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     self.number_frame = 0
 
                 message = AudioUIApp.set_volume(message, self.volume)
+                #wave_read = wave.open(self.file_name_url, "rb")
                 message = message.astype(np.int16)
+                
+                message = self.codec.encode(message)
 
                 try:
                     self.socket.send(message)
@@ -462,7 +471,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     self.logger.error(f"Send message error. {ex}")
 
                 period = self.get_time_period_message()
-                Event().wait(period)
+                Event().wait(0.5)
 
 
 
