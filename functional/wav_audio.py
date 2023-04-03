@@ -358,6 +358,8 @@ class WavAudio:
 
         self._seek_start_data = 0
         self._start_data_bool = False
+
+        self._fid.close()
         
 
     def read_data(self, chunk):
@@ -446,7 +448,7 @@ class WavAudio:
             self._size_data = struct.unpack(fmt+'I', self._fid.read(4))[0]
             self._check_size = True
         
-        # work onlt with mono audio
+        # work only with mono audio
         if channels >= 2:
             chunk *= channels
 
