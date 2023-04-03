@@ -166,7 +166,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.file_name_url, _ = QFileDialog.getOpenFileName(self)
         logger.debug(f"Get file name: {self.file_name_url}")
         self.file_name = QUrl.fromLocalFile(self.file_name_url).fileName()
-        self.thr_file_preparing_should_work = True
+        self._file_audio.open(self.file_name_url)
 
     @staticmethod
     def set_volume(x, volume):
@@ -362,30 +362,35 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         while True:
 
-            # message = "0".encode("utf-8")
             message = "idle".encode("utf-8")
 
-            if self.thr_client_tx_should_work is True and self.play_wav_file == AudioUIApp.PLAY_WAV_FILE_PLAYING and \
-                self._file_audio.get_ready_upload_all_data() and self.current_mode == AudioUIApp.CURRENT_MODE_FILE:
+            if self.play_wav_file == AudioUIApp.PLAY_WAV_FILE_PLAYING and \
+                self.current_mode == AudioUIApp.CURRENT_MODE_FILE:
 
-                message = self._file_audio.get_next_chunk_data(AudioUIApp.MSG_LEN_BYTES)
-                message = AudioUIApp.set_volume(message, self.volume)
-                message = message.astype(np.int16)
-                try:
-                    self._connection.send(message)
-                    send_error_once = 1
-                except socket.timeout as ex:
-                    logger.error(f"Send audio error. {ex}")
-                    if send_error_once != 0:
-                        logger.error(f"Broken pip error: {ex}")
-                        self.set_text_browser(f"Send audio error!")
-                        send_error_once -= 1
-                except BrokenPipeError as ex:
-                    if send_error_once != 0:
-                        logger.error(f"Broken pip error: {ex}")
-                        self.set_text_browser(f"Fatal connection lost! Reconnect to server or reboot")
-                        send_error_once -= 1
-                    self.close_connection()
+                message = self._file_audio.read(AudioUIApp.MSG_LEN_BYTES)
+
+                # print(message[1].shape)
+
+                # message = self._file_audio.get_next_chunk_data(AudioUIApp.MSG_LEN_BYTES)
+                # message = AudioUIApp.set_volume(message, self.volume)
+                # message = message.astype(np.int16)
+                # try:
+                #     self._connection.send(message)
+                #     send_error_once = 1
+                # except socket.timeout as ex:
+                #     logger.error(f"Send audio error. {ex}")
+                #     if send_error_once != 0:
+                #         logger.error(f"Broken pip error: {ex}")
+                #         self.set_text_browser(f"Send audio error!")
+                #         send_error_once -= 1
+                # except BrokenPipeError as ex:
+                #     if send_error_once != 0:
+                #         logger.error(f"Broken pip error: {ex}")
+                #         self.set_text_browser(f"Fatal connection lost! Reconnect to server or reboot")
+                #         send_error_once -= 1
+                #     self.close_connection()
+
+
 
                 period = self.get_time_period_message()
                 Event().wait(period)

@@ -59,10 +59,10 @@ class Converter:
         data = sps.resample(data, number_of_samples, window="triang")
         logger.debug(f"new sample rate: {self._target_sample_rate}")
 
-        max_val = np.max(np.abs(data))
-        if max_val != 0:
-            target_max_val = (32767 * Converter.db_to_float(-1.0))
-            data = Converter.normalize(data, max_val, target_max_val)
+        # max_val = np.max(np.abs(data))
+        # if max_val != 0:
+        #     target_max_val = (32767 * Converter.db_to_float(-1.0))
+        #     data = Converter.normalize(data, max_val, target_max_val)
 
 
         return data
