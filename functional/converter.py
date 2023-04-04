@@ -50,14 +50,14 @@ class Converter:
             data = np.delete(data, np.arange(1, data.shape[0], 2))
 
         if data.dtype == np.uint8:
-            logger.warning("Convert from uint8 to int16 format")
+            # logger.warning("Convert from uint8 to int16 format")
             data = data.astype(np.int16)
             data = Converter.map_int(data)
 
-        logger.debug(f"source sample rate: {source_sample_rate}")
+        # logger.debug(f"source sample rate: {source_sample_rate}")
         number_of_samples = round(len(data) * self._target_sample_rate / source_sample_rate)
         data = sps.resample(data, number_of_samples, window="triang")
-        logger.debug(f"new sample rate: {self._target_sample_rate}")
+        # logger.debug(f"new sample rate: {self._target_sample_rate}")
 
         # max_val = np.max(np.abs(data))
         # if max_val != 0:
@@ -73,7 +73,7 @@ class Converter:
         new_data = data
 
         if self._need_convert is True:
-            logger.info("Prepare wav file")
+            # logger.info("Prepare wav file")
             new_data = self._converting_file(data, source_sample_rate)
 
         return new_data
