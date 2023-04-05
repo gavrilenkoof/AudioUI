@@ -166,10 +166,19 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.file_name_url, _ = QFileDialog.getOpenFileName(self)
         logger.debug(f"Get file name: {self.file_name_url}")
         self.file_name = QUrl.fromLocalFile(self.file_name_url).fileName()
-        self.set_text_browser(f"File name: {self.file_name}")
-        self._file_audio.open(self.file_name_url)
-        logger.debug(f"File is ready!")
-        self.set_text_browser(f"File is ready!")
+
+        try:
+            self._file_audio.open(self.file_name_url)
+            self.set_text_browser(f"File name: {self.file_name}")
+            logger.debug(f"File is ready!")
+            self.set_text_browser(f"File is ready!")
+        except FileNotFoundError as ex:
+            logger.error(f"File open error. {ex}")
+            self.text_brows_info.append(f"File not found!")
+        except ValueError as ex:
+            logger.error(f"Parse WAV file error. {ex}")
+            self.text_brows_info.append(f"File must have the format '.wav'.")
+        
 
         # self.set_text_browser(f"{self._file_audio.get_source_sample_rate()}")
 
@@ -239,15 +248,15 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         self.thr_client_rx = Thread(target=self.rx_task, args=(), daemon=True)
         self.thr_client_tx = Thread(target=self.tx_task, args=(), daemon=True)
-        self.thr_file_preparing = Thread(target=self.file_preparing, args=(), daemon=True)
+        # self.thr_file_preparing = Thread(target=self.file_preparing, args=(), daemon=True)
 
         self.thr_client_rx_should_work = False
         self.thr_client_tx_should_work = False
-        self.thr_file_preparing_should_work = False
+        # self.thr_file_preparing_should_work = False
 
         self.thr_client_rx.start()
         self.thr_client_tx.start()
-        self.thr_file_preparing.start()
+        # self.thr_file_preparing.start()
 
 
     def connect_server_handler(self):
@@ -483,7 +492,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                         val = self._connection.parse_answer_tcp_percent(recv_data)
                         self.set_timeout_period(val)
                         send_error_once = 0
-
                 except socket.timeout as ex:
                     if send_error_once == 0:
                         logger.error(f"Read socket timeout")

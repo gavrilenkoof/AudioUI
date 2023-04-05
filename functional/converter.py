@@ -52,7 +52,7 @@ class Converter:
             data = Converter.map_int(data)
 
         number_of_samples = round(len(data) * self._target_sample_rate / source_sample_rate)
-        data = sps.resample(data, number_of_samples, window="bohman")
+        data = sps.resample(data, number_of_samples)
 
         # max_val = np.max(np.abs(data))
         # if max_val != 0:

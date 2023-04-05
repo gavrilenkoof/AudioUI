@@ -13,3 +13,4 @@ AudioUI_v*
 .eggs
 logs
 test.py
+.ipynb_checkpoints
