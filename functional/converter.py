@@ -51,16 +51,45 @@ class Converter:
             data = data.astype(np.int16)
             data = Converter.map_int(data)
 
-        number_of_samples = round(len(data) * self._target_sample_rate / source_sample_rate)
-        data = sps.resample(data, number_of_samples)
 
-        # max_val = np.max(np.abs(data))
+
+
+        number_of_samples = round(len(data) * self._target_sample_rate / source_sample_rate)
+        # data = sps.resample(data, number_of_samples, window=("dpss", 0.5))
+        data = sps.resample(data, number_of_samples, window="bohman")
+        # data = sps.resample(data, number_of_samples, window="blackman")
+
+        # max_val = 32000
         # if max_val != 0:
-        #     target_max_val = (32767 * Converter.db_to_float(-1))
+        #     target_max_val = (32767 * Converter.db_to_float(-0.1))
         #     data = Converter.normalize(data, max_val, target_max_val)
 
 
+        # data = self._butter_highpass_filter(data, 50, self._target_sample_rate)
+        # data = self._butter_lowpass_filter(data, 7999, self._target_sample_rate, 5)
+
         return data
+    
+
+    def _butter_highpass(self, cutoff, fs, order=5):
+        nyq = 0.5 * fs
+        normal_cutoff = cutoff / nyq
+        b, a = sps.butter(order, normal_cutoff, btype='high', analog=False)
+        return b, a
+
+    def _butter_highpass_filter(self, data, cutoff, fs, order=5):
+        b, a = self._butter_highpass(cutoff, fs, order=order)
+        y = sps.filtfilt(b, a, data)
+        return y
+    
+    def _butter_lowpass(self, cutoff, fs, order=5):
+        return sps.butter(order, cutoff, fs=fs, btype='low', analog=False)
+
+    def _butter_lowpass_filter(self, data, cutoff, fs, order=5):
+        b, a = self._butter_lowpass(cutoff, fs, order=order)
+        y = sps.lfilter(b, a, data)
+        return y
+
 
 
     def convert_file(self, data, source_sample_rate):
