@@ -319,7 +319,8 @@ class WavAudio:
         self._seek_start_data = 0
         self._start_data_bool = False
 
-
+    def get_source_sample_rate(self):
+        return self._fs
 
     def open_file(self, file_name):
         if hasattr(file_name, 'read'):
@@ -403,7 +404,7 @@ class WavAudio:
         data = self._read_data_chunk(chunk, self._format_tag, self._channels, self._bit_depth, 
                                         self._is_big_endian, self._block_align, self._mmap)
 
-        return self._fs, data
+        return data
     
     
     def restart_file(self):

@@ -171,6 +171,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         logger.debug(f"File is ready!")
         self.set_text_browser(f"File is ready!")
 
+        # self.set_text_browser(f"{self._file_audio.get_source_sample_rate()}")
+
     @staticmethod
     def set_volume(x, volume):
         return x * volume
@@ -373,13 +375,14 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             if self.thr_client_tx_should_work is True and self.play_wav_file == AudioUIApp.PLAY_WAV_FILE_PLAYING and \
                 self.current_mode == AudioUIApp.CURRENT_MODE_FILE:
 
+                chunk = int(AudioUIApp.MSG_LEN_BYTES * 
+                            (self._file_audio.get_source_sample_rate() / self._converter.get_target_sample_rate()))
+
                 if self._file_audio.is_file_end():
                     self._file_audio.restart_file()
 
-                source_sample_rate, message = self._file_audio.read(AudioUIApp.MSG_LEN_BYTES)
-                logger.info(message.shape)
-                message = self._converter.convert_file(message, source_sample_rate)
-                logger.info(message.shape)
+                message = self._file_audio.read(chunk)
+                message = self._converter.convert_file(message, self._file_audio.get_source_sample_rate())
                 message = AudioUIApp.set_volume(message, self.volume)
                 message = message.astype(np.int16)
 

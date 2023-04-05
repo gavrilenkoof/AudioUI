@@ -14,9 +14,7 @@ class Converter:
     def __init__(self, need_convert, target_sample_rate):
         super(Converter, self).__init__()
         self._need_convert = need_convert
-        # self._mic_source_sample_rate = source_sample_rate
         self._target_sample_rate = target_sample_rate
-        # self.form = format
 
 
     def convert_mic(self, message, source_sample_rate):
@@ -50,19 +48,15 @@ class Converter:
             data = np.delete(data, np.arange(1, data.shape[0], 2))
 
         if data.dtype == np.uint8:
-            # logger.warning("Convert from uint8 to int16 format")
             data = data.astype(np.int16)
             data = Converter.map_int(data)
 
-        # logger.debug(f"source sample rate: {source_sample_rate}")
         number_of_samples = round(len(data) * self._target_sample_rate / source_sample_rate)
-        data = sps.resample(data, number_of_samples, window="boxcar")
-        # logger.debug(f"new sample rate: {self._target_sample_rate}")
+        data = sps.resample(data, number_of_samples, window="bohman")
 
         # max_val = np.max(np.abs(data))
-        # max_val = 32767
         # if max_val != 0:
-        #     target_max_val = (32767 * Converter.db_to_float(-0.5))
+        #     target_max_val = (32767 * Converter.db_to_float(-1))
         #     data = Converter.normalize(data, max_val, target_max_val)
 
 
@@ -70,9 +64,7 @@ class Converter:
 
 
     def convert_file(self, data, source_sample_rate):
-
         new_data = data
-
         if self._need_convert is True:
             new_data = self._converting_file(data, source_sample_rate)
 
