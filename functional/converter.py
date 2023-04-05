@@ -56,24 +56,24 @@ class Converter:
 
         # logger.debug(f"source sample rate: {source_sample_rate}")
         number_of_samples = round(len(data) * self._target_sample_rate / source_sample_rate)
-        data = sps.resample(data, number_of_samples, window="triang")
+        data = sps.resample(data, number_of_samples, window="boxcar")
         # logger.debug(f"new sample rate: {self._target_sample_rate}")
 
         # max_val = np.max(np.abs(data))
+        # max_val = 32767
         # if max_val != 0:
-        #     target_max_val = (32767 * Converter.db_to_float(-1.0))
+        #     target_max_val = (32767 * Converter.db_to_float(-0.5))
         #     data = Converter.normalize(data, max_val, target_max_val)
 
 
         return data
 
 
-    def prepare_wav_file(self, data, source_sample_rate):
+    def convert_file(self, data, source_sample_rate):
 
         new_data = data
 
         if self._need_convert is True:
-            # logger.info("Prepare wav file")
             new_data = self._converting_file(data, source_sample_rate)
 
         return new_data

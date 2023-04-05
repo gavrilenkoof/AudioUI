@@ -30,6 +30,12 @@ class FileAudio:
     
     def get_ready_upload_all_data(self) -> bool:
         return self._ready_for_use_prepared_data
+    
+    def is_file_end(self):
+        return self._wav_file_handler.is_file_end()
+    
+    def restart_file(self):
+        self._wav_file_handler.restart_file()
 
 
     def open(self, file_name_url):
@@ -59,12 +65,9 @@ class FileAudio:
         return self._data, self._source_sample_rate
 
     def read(self, chunk):
-        is_data = False
-        is_end_file = False
         data = None
 
-        while not is_data and not is_end_file:
-            self._source_sample_rate, data, is_data, is_end_file = self._wav_file_handler.read_data(chunk)
+        self._source_sample_rate, data = self._wav_file_handler.read_data(chunk)
 
         return self._source_sample_rate, data
 

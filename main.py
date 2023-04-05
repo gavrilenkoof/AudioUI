@@ -166,6 +166,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.file_name_url, _ = QFileDialog.getOpenFileName(self)
         logger.debug(f"Get file name: {self.file_name_url}")
         self.file_name = QUrl.fromLocalFile(self.file_name_url).fileName()
+        self.set_text_browser(f"File name: {self.file_name}")
         self._file_audio.open(self.file_name_url)
         logger.debug(f"File is ready!")
         self.set_text_browser(f"File is ready!")
@@ -186,7 +187,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         self.thr_client_tx_should_work = False
         self.thr_client_rx_should_work = False
-
         self._connection.disconnect()
 
     def disable_mic(self):
@@ -268,6 +268,10 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             logger.error(f"IndexError. {ex}")
             self.close_connection()
             self.set_text_browser(f"Bad address format!")
+        except ConnectionRefusedError as ex:
+            logger.error(f"ConnectionRefusedError. {ex}")
+            self.close_connection()
+            self.set_text_browser(f"Bad address! Сheck that the address is correct!")
 
     def play_wav_file_handler(self):
         logger.info("Play WAV file handler")
@@ -369,29 +373,16 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             if self.thr_client_tx_should_work is True and self.play_wav_file == AudioUIApp.PLAY_WAV_FILE_PLAYING and \
                 self.current_mode == AudioUIApp.CURRENT_MODE_FILE:
 
+                if self._file_audio.is_file_end():
+                    self._file_audio.restart_file()
+
                 source_sample_rate, message = self._file_audio.read(AudioUIApp.MSG_LEN_BYTES)
-                message = self._converter.prepare_wav_file(message, source_sample_rate)
+                logger.info(message.shape)
+                message = self._converter.convert_file(message, source_sample_rate)
+                logger.info(message.shape)
                 message = AudioUIApp.set_volume(message, self.volume)
                 message = message.astype(np.int16)
 
-                # message = self._file_audio.get_next_chunk_data(AudioUIApp.MSG_LEN_BYTES)
-                # message = AudioUIApp.set_volume(message, self.volume)
-                # message = message.astype(np.int16)
-                # try:
-                #     self._connection.send(message)
-                #     send_error_once = 1
-                # except socket.timeout as ex:
-                #     logger.error(f"Send audio error. {ex}")
-                #     if send_error_once != 0:
-                #         logger.error(f"Broken pip error: {ex}")
-                #         self.set_text_browser(f"Send audio error!")
-                #         send_error_once -= 1
-                # except BrokenPipeError as ex:
-                #     if send_error_once != 0:
-                #         logger.error(f"Broken pip error: {ex}")
-                #         self.set_text_browser(f"Fatal connection lost! Reconnect to server or reboot")
-                #         send_error_once -= 1
-                #     self.close_connection()
                 try:
                     self._connection.send(message)
                     send_error_once = 1

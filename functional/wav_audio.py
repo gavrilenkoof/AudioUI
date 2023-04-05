@@ -322,7 +322,6 @@ class WavAudio:
 
 
     def open_file(self, file_name):
-
         if hasattr(file_name, 'read'):
             self._fid = file_name
             self._mmap = False
@@ -330,12 +329,42 @@ class WavAudio:
             self._fid = open(file_name, 'rb')  
 
         self._fid = open(file_name, 'rb')
-
         self._file_size, self._is_big_endian = self._read_riff_chunk()
+
+        while self._chunk_id != b'data':
+            # if not self._data_chunk_received:
+            self._chunk_id = self._fid.read(4)
+
+            if not self._chunk_id:
+                if self._data_chunk_received:
+                    warnings.warn(
+                            "Reached EOF prematurely; finished at {:d} bytes, "
+                            "expected {:d} bytes from header."
+                            .format(self._fid.tell(), self._file_size),
+                            WavFileWarning, stacklevel=2)
+                    
+            if self._chunk_id == b'fmt ':
+                self._fmt_chunk_received = True
+                fmt_chunk = self._read_fmt_chunk(self._is_big_endian)
+                self._format_tag, self._channels, self._fs = fmt_chunk[1:4]
+                self._bit_depth = fmt_chunk[6]
+                self._block_align = fmt_chunk[5]
+            elif self._chunk_id == b'fact':
+                self._skip_unknown_chunk(self._is_big_endian)
+            elif self._chunk_id == b'data':
+                self._data_chunk_received = True
+            elif self._chunk_id == b'LIST':
+                # Someday this could be handled properly but for now skip it
+                self._skip_unknown_chunk(self._is_big_endian)
+            elif self._chunk_id is {b'JUNK', b'Fake'}:
+                self._skip_unknown_chunk(self._is_big_endian)
+            else:
+                warnings.warn("Chunk (non-data) not understood, skipping it.",
+                          WavFileWarning, stacklevel=2)
+                self._skip_unknown_chunk(self._is_big_endian)
 
     def is_file_end(self):
         return self._end_file
-
 
     def close_file(self):
 
@@ -363,56 +392,19 @@ class WavAudio:
         
 
     def read_data(self, chunk):
-        data = 0
+        data = None
 
         if not self._data_chunk_received:
-            self._chunk_id = self._fid.read(4)
+            raise ValueError("Data chunk not received")
 
-        if not self._chunk_id:
-            if self._data_chunk_received:
-                warnings.warn(
-                        "Reached EOF prematurely; finished at {:d} bytes, "
-                        "expected {:d} bytes from header."
-                        .format(self._fid.tell(), self._file_size),
-                        WavFileWarning, stacklevel=2)
-                
-                return self._fs, data, self._data_chunk_received
-            
-            else:
-                raise ValueError("Unexpected end of file.")
-        elif len(self._chunk_id) < 4:
-            msg = f"Incomplete chunk ID: {repr(self._chunk_id)}"
-            if self._fmt_chunk_received and self._data_chunk_received:
-                warnings.warn(msg + ", ignoring it.", WavFileWarning, stacklevel=2)
-            else:
-                raise ValueError(msg)
-            
-        if self._chunk_id == b'fmt ':
-            self._fmt_chunk_received = True
-            fmt_chunk = self._read_fmt_chunk(self._is_big_endian)
-            self._format_tag, self._channels, self._fs = fmt_chunk[1:4]
-            self._bit_depth = fmt_chunk[6]
-            self._block_align = fmt_chunk[5]
-        elif self._chunk_id == b'fact':
-            self._skip_unknown_chunk(self._is_big_endian)
-        elif self._chunk_id == b'data':
-            self._data_chunk_received = True
-            if not self._fmt_chunk_received:
-                raise ValueError("No fmt chunk before data")
-            data = self._read_data_chunk(chunk, self._format_tag, self._channels, self._bit_depth, 
-                                         self._is_big_endian, self._block_align, self._mmap)
-            
-        elif self._chunk_id == b'LIST':
-            # Someday this could be handled properly but for now skip it
-            self._skip_unknown_chunk(self._is_big_endian)
-        elif self._chunk_id is {b'JUNK', b'Fake'}:
-            self._skip_unknown_chunk(self._is_big_endian)
-        else:
-            warnings.warn("Chunk (non-data) not understood, skipping it.",
-                          WavFileWarning, stacklevel=2)
-            self._skip_unknown_chunk(self._is_big_endian)
+        if not self._fmt_chunk_received:
+            raise ValueError("No fmt chunk before data")
+        
+        data = self._read_data_chunk(chunk, self._format_tag, self._channels, self._bit_depth, 
+                                        self._is_big_endian, self._block_align, self._mmap)
 
-        return self._fs, data, self._data_chunk_received, self._end_file
+        return self._fs, data
+    
     
     def restart_file(self):
         self._fid.seek(self._seek_start_data)
@@ -483,11 +475,7 @@ class WavAudio:
             self._seek_start_data = start
             self._start_data_bool = True
 
-        if start >= self._size_data:
-            self._end_file = True
-        else:
-            self._end_file = False
-
+        # count = self._size_data
         count = chunk
             
         if not mmap:
@@ -523,6 +511,13 @@ class WavAudio:
 
         if channels > 1:
             data = data.reshape(-1, channels)
+
+
+        start = self._fid.tell()
+        if start >= self._size_data:
+            self._end_file = True
+        else:
+            self._end_file = False
 
         
         return data
