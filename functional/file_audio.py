@@ -16,6 +16,14 @@ class FileAudio:
 
         self._is_file_open = False
 
+
+        # vars for prepared data
+        self._prepared_data = None
+        self._number_of_message = 0
+        self._all_number = 0
+        self._prepared_data_end_file = True 
+
+
         self._wav_file_handler = WavAudio()
 
     def get_status_file(self) -> bool:
@@ -43,6 +51,13 @@ class FileAudio:
     def close(self):
         self._is_file_open = False
 
+
+        self._prepared_data = None
+        self._number_of_message = 0
+        self._all_number = 0
+        self._prepared_data_end_file = True 
+
+
         logger.info("Close WAV File")
         try:
             self._wav_file_handler.close_file()
@@ -56,5 +71,25 @@ class FileAudio:
         data = self._wav_file_handler.read_data(chunk)
 
         return data
+    
+
+    def set_prepared_data(self, data, all_number):
+        self._prepared_data = data
+        self._prepared_data_end_file = False
+        self._all_number = all_number
 
 
+    def get_chunk_prepared_data(self, chunk):
+        data = self._prepared_data[self._number_of_message * chunk: (self._number_of_message + 1) * chunk]
+
+        if self._number_of_message >= self._all_number - 1:
+            self._prepared_data_end_file = True
+            self._number_of_message = 0
+        else:
+            self._number_of_message += 1
+
+        return data
+
+
+    def is_prepared_data_end(self):
+        return self._prepared_data_end_file 

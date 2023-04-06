@@ -17,6 +17,14 @@ class Converter:
         self._target_sample_rate = target_sample_rate
 
 
+
+
+        self._prepared_data_end_file = True
+        self._prepared_data = None
+        self._number_of_message = 0
+        self._all_number = 0
+
+
     def convert_mic(self, message, source_sample_rate):
 
         number_of_samples = round(len(message) * self.get_target_sample_rate() / source_sample_rate)
@@ -55,8 +63,7 @@ class Converter:
 
 
         number_of_samples = round(len(data) * self._target_sample_rate / source_sample_rate)
-        # data = sps.resample(data, number_of_samples, window=("dpss", 0.5))
-        data = sps.resample(data, number_of_samples, window="bohman")
+        data = sps.resample(data, number_of_samples, window="triang")
         # data = sps.resample(data, number_of_samples, window="blackman")
 
         # max_val = 32000
@@ -91,13 +98,28 @@ class Converter:
         return y
 
 
+    # def get_chunk_prepared_data(self, chunk):
+    #     data = self._prepared_data[self._number_of_message * chunk: (self._number_of_message + 1) * chunk]
+
+    #     if self._number_of_message >= self._all_number - 1:
+    #         self._prepared_data_end_file = True
+    #         self._number_of_message = 0
+    #     else:
+    #         self._number_of_message += 1
+
+    #     return data
+
 
     def convert_file(self, data, source_sample_rate):
         new_data = data
         if self._need_convert is True:
-            new_data = self._converting_file(data, source_sample_rate)
+            new_data = self._converting_file(new_data, source_sample_rate)
 
         return new_data
 
     def get_target_sample_rate(self):
         return self._target_sample_rate
+    
+
+    # def is_prepared_data_end(self):
+    #     return self._prepared_data_end_file 

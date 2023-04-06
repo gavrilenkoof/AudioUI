@@ -376,6 +376,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         period_send_idle = 0.5 #sec
 
         send_error_once = 1
+        send_error_once_file = 1
 
         while True:
 
@@ -386,28 +387,34 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
                 chunk = int(AudioUIApp.MSG_LEN_BYTES * 
                             (self._file_audio.get_source_sample_rate() / self._converter.get_target_sample_rate()))
+                
+                number_of_messages = 34 # 16000 / 34 = 1 sec of music
+                
+                if self._file_audio.is_prepared_data_end():
+                    message = self._file_audio.read(chunk * number_of_messages)
+                    message = self._converter.convert_file(message, self._file_audio.get_source_sample_rate())
+                    self._file_audio.set_prepared_data(message, number_of_messages)
 
                 if self._file_audio.is_file_end():
                     self._file_audio.restart_file()
 
-                message = self._file_audio.read(chunk)
-                message = self._converter.convert_file(message, self._file_audio.get_source_sample_rate())
+                message = self._file_audio.get_chunk_prepared_data(AudioUIApp.MSG_LEN_BYTES)
                 message = AudioUIApp.set_volume(message, self.volume)
                 message = message.astype(np.int16)
 
                 try:
                     self._connection.send(message)
-                    send_error_once = 1
+                    send_error_once_file = 1
                 except socket.timeout as ex:
-                    if send_error_once != 0:
+                    if send_error_once_file != 0:
                         logger.error(f"Send audio error: {ex}")
                         self.set_text_browser(f"Send audio error!")
-                        send_error_once -= 1
+                        send_error_once_file -= 1
                 except BrokenPipeError as ex:
-                    if send_error_once != 0:
+                    if send_error_once_file != 0:
                         logger.error(f"Broken pip error: {ex}")
                         self.set_text_browser(f"Fatal connection lost! Reconnect to server or reboot")
-                        send_error_once -= 1
+                        send_error_once_file -= 1
                         self.close_connection()
 
                 period = self.get_time_period_message()
