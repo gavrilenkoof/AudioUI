@@ -9,6 +9,8 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from qtwidgets import AnimatedToggle
+
 
 
 class Ui_MainWindow(object):
@@ -35,6 +37,10 @@ class Ui_MainWindow(object):
         self.verticalLayout.setObjectName("verticalLayout")
         self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
+
+        spacerItem0 = QtWidgets.QSpacerItem(10, 20, QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Minimum)
+        self.horizontalLayout_2.addItem(spacerItem0)
+
         self.label = QtWidgets.QLabel(self.centralwidget)
         self.label.setObjectName("label")
         self.horizontalLayout_2.addWidget(self.label)
@@ -42,31 +48,47 @@ class Ui_MainWindow(object):
         self.horizontalLayout_2.addItem(spacerItem)
         self.label_2 = QtWidgets.QLabel(self.centralwidget)
         self.label_2.setObjectName("label_2")
+        
+        
         self.horizontalLayout_2.addWidget(self.label_2)
         spacerItem1 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout_2.addItem(spacerItem1)
         self.verticalLayout.addLayout(self.horizontalLayout_2)
         self.horizontalLayout = QtWidgets.QHBoxLayout()
         self.horizontalLayout.setObjectName("horizontalLayout")
-        self.btn_mode_choice = QtWidgets.QToolButton(self.centralwidget)
-        self.btn_mode_choice.setMinimumSize(QtCore.QSize(65, 31))
-        self.btn_mode_choice.setMaximumSize(QtCore.QSize(65, 31))
+
+        # self.btn_mode_choice = QtWidgets.QToolButton(self.centralwidget)
+        # self.btn_mode_choice.setMinimumSize(QtCore.QSize(65, 31))
+        # self.btn_mode_choice.setMaximumSize(QtCore.QSize(65, 31))
+        # font = QtGui.QFont()
+        # font.setPointSize(9)
+        # self.btn_mode_choice.setFont(font)
+        # self.btn_mode_choice.setObjectName("btn_mode_choice")
+        # self.horizontalLayout.addWidget(self.btn_mode_choice)
+
+        self.btn_mode_choice = AnimatedToggle(
+            checked_color="#308CC6",
+            pulse_checked_color="#44308CC6"
+        )
+        self.btn_mode_choice.setMinimumSize(QtCore.QSize(65, 40))
+        self.btn_mode_choice.setMaximumSize(QtCore.QSize(65, 40))
         font = QtGui.QFont()
         font.setPointSize(9)
         self.btn_mode_choice.setFont(font)
         self.btn_mode_choice.setObjectName("btn_mode_choice")
         self.horizontalLayout.addWidget(self.btn_mode_choice)
+
         self.btn_reboot_server = QtWidgets.QToolButton(self.centralwidget)
-        self.btn_reboot_server.setMinimumSize(QtCore.QSize(65, 31))
-        self.btn_reboot_server.setMaximumSize(QtCore.QSize(65, 31))
+        self.btn_reboot_server.setMinimumSize(QtCore.QSize(65, 28))
+        self.btn_reboot_server.setMaximumSize(QtCore.QSize(65, 28))
         font = QtGui.QFont()
         font.setPointSize(9)
         self.btn_reboot_server.setFont(font)
         self.btn_reboot_server.setObjectName("btn_reboot_server")
         self.horizontalLayout.addWidget(self.btn_reboot_server)
         self.btn_connect_to_server = QtWidgets.QToolButton(self.centralwidget)
-        self.btn_connect_to_server.setMinimumSize(QtCore.QSize(175, 31))
-        self.btn_connect_to_server.setMaximumSize(QtCore.QSize(65, 31))
+        self.btn_connect_to_server.setMinimumSize(QtCore.QSize(175, 28))
+        self.btn_connect_to_server.setMaximumSize(QtCore.QSize(65, 28))
         font = QtGui.QFont()
         font.setPointSize(9)
         self.btn_connect_to_server.setFont(font)
@@ -75,7 +97,7 @@ class Ui_MainWindow(object):
         spacerItem2 = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem2)
         self.edit_ip_address = QtWidgets.QLineEdit(self.centralwidget)
-        self.edit_ip_address.setMinimumSize(QtCore.QSize(150, 31))
+        self.edit_ip_address.setMinimumSize(QtCore.QSize(150, 28))
         font = QtGui.QFont()
         font.setPointSize(9)
         self.edit_ip_address.setFont(font)
@@ -115,16 +137,16 @@ class Ui_MainWindow(object):
         self.horizontalLayout_5 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_5.setObjectName("horizontalLayout_5")
         self.btn_load_wav_file = QtWidgets.QToolButton(self.centralwidget)
-        self.btn_load_wav_file.setMinimumSize(QtCore.QSize(65, 31))
-        self.btn_load_wav_file.setMaximumSize(QtCore.QSize(65, 31))
+        self.btn_load_wav_file.setMinimumSize(QtCore.QSize(65, 28))
+        self.btn_load_wav_file.setMaximumSize(QtCore.QSize(65, 28))
         font = QtGui.QFont()
         font.setPointSize(9)
         self.btn_load_wav_file.setFont(font)
         self.btn_load_wav_file.setObjectName("btn_load_wav_file")
         self.horizontalLayout_5.addWidget(self.btn_load_wav_file)
         self.btn_play_wav_file = QtWidgets.QToolButton(self.centralwidget)
-        self.btn_play_wav_file.setMinimumSize(QtCore.QSize(65, 31))
-        self.btn_play_wav_file.setMaximumSize(QtCore.QSize(65, 31))
+        self.btn_play_wav_file.setMinimumSize(QtCore.QSize(65, 28))
+        self.btn_play_wav_file.setMaximumSize(QtCore.QSize(65, 28))
         font = QtGui.QFont()
         font.setPointSize(9)
         self.btn_play_wav_file.setFont(font)
@@ -164,8 +186,8 @@ class Ui_MainWindow(object):
         self.horizontalLayout_3 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_3.setObjectName("horizontalLayout_3")
         self.btn_play_mic = QtWidgets.QToolButton(self.centralwidget)
-        self.btn_play_mic.setMinimumSize(QtCore.QSize(65, 31))
-        self.btn_play_mic.setMaximumSize(QtCore.QSize(65, 31))
+        self.btn_play_mic.setMinimumSize(QtCore.QSize(65, 28))
+        self.btn_play_mic.setMaximumSize(QtCore.QSize(65, 28))
         font = QtGui.QFont()
         font.setPointSize(9)
         self.btn_play_mic.setFont(font)
@@ -207,12 +229,15 @@ class Ui_MainWindow(object):
         self.verticalLayout_8.addLayout(self.horizontalLayout_7)
         self.horizontalLayout_8 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_8.setObjectName("horizontalLayout_8")
+
         self.slider_volume = QtWidgets.QSlider(self.centralwidget)
         self.slider_volume.setMaximum(100)
         self.slider_volume.setProperty("value", 50)
         self.slider_volume.setOrientation(QtCore.Qt.Horizontal)
         self.slider_volume.setObjectName("slider_volume")
         self.horizontalLayout_8.addWidget(self.slider_volume)
+        
+
         self.label_volume = QtWidgets.QLabel(self.centralwidget)
         self.label_volume.setMinimumSize(QtCore.QSize(40, 0))
         self.label_volume.setObjectName("label_volume")
