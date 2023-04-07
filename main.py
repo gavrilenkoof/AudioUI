@@ -23,15 +23,11 @@ from communication.client_tcp import ClientTCP
 import time
 
 
-
-
 TCP_IP = '192.168.0.107'
 TCP_PORT = 7
 
 
 logger = get_logger(__name__.replace('__', ''))
-# logger.info("Spawned main")
-
 
 
 def find_data_file(filename):
@@ -59,6 +55,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
     DEFAULT_MIC_TIMEOUT_MSG = 0.003
 
     MSG_LEN_BYTES = 512 # 1024 for 16sign
+    PREPARED_MSG_SECONDS = 2
 
     CURRENT_MODE_FILE = 1
     CURRENT_MODE_MIC = 2 
@@ -80,6 +77,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self._microphone = Microphone(1, pyaudio.paInt16)
         self._connection = ClientTCP(address_family=socket.AF_INET, socket_kind=socket.SOCK_STREAM, 
                                     timeout=0.5)
+        
+        self._num_prepared_msg_audio = int((self._converter.get_target_sample_rate() / AudioUIApp.MSG_LEN_BYTES) * AudioUIApp.PREPARED_MSG_SECONDS) + 1
 
         self.current_mode = AudioUIApp.CURRENT_MODE_FILE
         self.play_wav_file = AudioUIApp.PLAY_WAV_FILE_STOP
@@ -388,12 +387,13 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 chunk = int(AudioUIApp.MSG_LEN_BYTES * 
                             (self._file_audio.get_source_sample_rate() / self._converter.get_target_sample_rate()))
                 
-                number_of_messages = 34 # 16000 / 34 = 1 sec of music
+
                 
                 if self._file_audio.is_prepared_data_end():
-                    message = self._file_audio.read(chunk * number_of_messages)
+                    message = self._file_audio.read(chunk * self._num_prepared_msg_audio)
                     message = self._converter.convert_file(message, self._file_audio.get_source_sample_rate())
-                    self._file_audio.set_prepared_data(message, number_of_messages)
+                    self._file_audio.set_prepared_data(message, self._num_prepared_msg_audio)
+                    print("NEW DATA")
 
                 if self._file_audio.is_file_end():
                     self._file_audio.restart_file()
