@@ -5,6 +5,7 @@
     "version": "0.2.0",
     "configurations": [
 
+
         {
             "name": "main.py",
             "type": "python",
@@ -22,6 +23,16 @@
             "program": "Audio.py",
             "console": "integratedTerminal",
             "justMyCode": true
-        }
+        },
+        {
+            "name": "test.py",
+            "type": "python",
+            "request": "launch",
+            // "program": "${file}",
+            "program": "test.py",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        
     ]
 }

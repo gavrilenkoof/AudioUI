@@ -1,83 +1,3 @@
-# import pyaudio
-# import wave
-# import audioop
-
-
-# import scipy.signal as sps
-# import numpy as np
- 
-# source_sample_rate = 44100
-# target_sample_rate = 16000
-
-# FORMAT = pyaudio.paInt16
-# CHANNELS = 1
-# CHUNK = round(1024 * target_sample_rate / source_sample_rate)
-# RECORD_SECONDS = 10
-
-# # CHUNK_AUDIO = int(1024 / (44100 / 16000)) + 1
-
-# WAVE_OUTPUT_FILENAME = "file.wav"
- 
-# audio = pyaudio.PyAudio()
- 
-# # start Recording mic
-# stream_input = audio.open(format=FORMAT, channels=CHANNELS,
-#                 rate=source_sample_rate, input=True,
-#                 frames_per_buffer=CHUNK)
-
-
-# # stream_output = audio.open(format=FORMAT, channels=CHANNELS,
-# #                     rate=16000, output=True,
-# #                     frames_per_buffer=CHUNK_AUDIO)
-
-
-# print("recording...")
-# frames = []
-# cvstate = None
-
-# for i in range(0, int(source_sample_rate / CHUNK * RECORD_SECONDS)):
-#     data = stream_input.read(CHUNK)
-#     # new_data, cvstate = audioop.ratecv(data, 2, 1, 44100, 16000, cvstate)
-#     # new_data = audioop.lin2lin(data, 2, 1)
-#     # new_data = audioop.bias(new_data, 1, 128)
-#     new_data = np.frombuffer(data, dtype=np.int16)
-#     number_of_samples = round(len(new_data) * target_sample_rate/source_sample_rate)
-#     new_data = sps.resample(new_data, number_of_samples)
-#     new_data = new_data.astype(np.int16)
-#     new_data = new_data[:].tobytes()
-
-#     frames.append(new_data)
-#     # stream_output.write(data)
-
-# print("finished recording")
- 
-# # stop Recording
-# stream_input.stop_stream()
-# stream_input.close()
-# audio.terminate()
-
-# # stream_output.stop_stream()
-# # stream_output.close()
-
-# val = audio.get_sample_size(FORMAT)
- 
-# waveFile = wave.open(WAVE_OUTPUT_FILENAME, 'wb')
-# waveFile.setnchannels(CHANNELS)
-# waveFile.setsampwidth(2)
-# waveFile.setframerate(target_sample_rate)
-# waveFile.writeframes(b''.join(frames))
-# waveFile.close()
-
-# waveFile = wave.open(WAVE_OUTPUT_FILENAME, 'wb')
-# waveFile.setnchannels(CHANNELS)
-# waveFile.setsampwidth(2)
-# waveFile.setframerate(44100)
-# waveFile.writeframes(b''.join(frames))
-# waveFile.close()
-
-
-
-
 import struct
 from enum import IntEnum
 import numpy as np
@@ -372,7 +292,7 @@ KNOWN_WAVE_FORMATS = {WAVE_FORMAT.PCM, WAVE_FORMAT.IEEE_FLOAT}
 
 
 
-class FileAudio:
+class WavAudio:
     def __init__(self):
         self._fid = None
 
@@ -399,10 +319,10 @@ class FileAudio:
         self._seek_start_data = 0
         self._start_data_bool = False
 
-
+    def get_source_sample_rate(self):
+        return self._fs
 
     def open_file(self, file_name):
-
         if hasattr(file_name, 'read'):
             self._fid = file_name
             self._mmap = False
@@ -444,11 +364,8 @@ class FileAudio:
                           WavFileWarning, stacklevel=2)
                 self._skip_unknown_chunk(self._is_big_endian)
 
-
-
     def is_file_end(self):
         return self._end_file
-
 
     def close_file(self):
 
@@ -471,12 +388,12 @@ class FileAudio:
 
         self._seek_start_data = 0
         self._start_data_bool = False
-        
-        self._fid.close()
 
+        self._fid.close()
+        
 
     def read_data(self, chunk):
-        data = 0
+        data = None
 
         if not self._data_chunk_received:
             raise ValueError("Data chunk not received")
@@ -487,7 +404,8 @@ class FileAudio:
         data = self._read_data_chunk(chunk, self._format_tag, self._channels, self._bit_depth, 
                                         self._is_big_endian, self._block_align, self._mmap)
 
-        return self._fs, data, self._end_file
+        return data
+    
     
     def restart_file(self):
         self._fid.seek(self._seek_start_data)
@@ -726,33 +644,3 @@ class FileAudio:
             raise ValueError(f"Not a WAV file. RIFF form type is {repr(str2)}.")
 
         return _file_size, _is_big_endian
-    
-
-
-file_name = "/home/ivan/Documents/Code/AudioUI/wav/Eminem - Lose Yourself.wav"
-
-file = FileAudio()
-try:
-    file.open_file(file_name)
-
-    while not file.is_file_end():
-        res = file.read_data(1024)
-        print(res[1].shape, "before restart")
-
-    file.restart_file()
-
-
-    while not file.is_file_end():
-        res = file.read_data(1024)
-        print(res[1].shape, "after restart")
-
-
-
-except Exception as ex:
-    print(ex)
-finally:
-    file.close_file()
-
-
-
-print("End")

@@ -23,15 +23,11 @@ from communication.client_tcp import ClientTCP
 import time
 
 
-
-
 TCP_IP = '192.168.0.107'
 TCP_PORT = 7
 
 
 logger = get_logger(__name__.replace('__', ''))
-# logger.info("Spawned main")
-
 
 
 def find_data_file(filename):
@@ -59,6 +55,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
     DEFAULT_MIC_TIMEOUT_MSG = 0.003
 
     MSG_LEN_BYTES = 512 # 1024 for 16sign
+    PREPARED_MSG_SECONDS = 2 # sec
 
     CURRENT_MODE_FILE = 1
     CURRENT_MODE_MIC = 2 
@@ -80,6 +77,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self._microphone = Microphone(1, pyaudio.paInt16)
         self._connection = ClientTCP(address_family=socket.AF_INET, socket_kind=socket.SOCK_STREAM, 
                                     timeout=0.5)
+        
+        self._num_prepared_msg_audio = int((self._converter.get_target_sample_rate() / AudioUIApp.MSG_LEN_BYTES) * AudioUIApp.PREPARED_MSG_SECONDS) + 1
 
         self.current_mode = AudioUIApp.CURRENT_MODE_FILE
         self.play_wav_file = AudioUIApp.PLAY_WAV_FILE_STOP
@@ -166,7 +165,21 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.file_name_url, _ = QFileDialog.getOpenFileName(self)
         logger.debug(f"Get file name: {self.file_name_url}")
         self.file_name = QUrl.fromLocalFile(self.file_name_url).fileName()
-        self.thr_file_preparing_should_work = True
+
+        try:
+            self._file_audio.open(self.file_name_url)
+            self.set_text_browser(f"File name: {self.file_name}")
+            logger.debug(f"File is ready!")
+            self.set_text_browser(f"File is ready!")
+        except FileNotFoundError as ex:
+            logger.error(f"File open error. {ex}")
+            self.text_brows_info.append(f"File not found!")
+        except ValueError as ex:
+            logger.error(f"Parse WAV file error. {ex}")
+            self.text_brows_info.append(f"File must have the format '.wav'.")
+        
+
+        # self.set_text_browser(f"{self._file_audio.get_source_sample_rate()}")
 
     @staticmethod
     def set_volume(x, volume):
@@ -184,7 +197,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         self.thr_client_tx_should_work = False
         self.thr_client_rx_should_work = False
-
         self._connection.disconnect()
 
     def disable_mic(self):
@@ -235,15 +247,15 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         self.thr_client_rx = Thread(target=self.rx_task, args=(), daemon=True)
         self.thr_client_tx = Thread(target=self.tx_task, args=(), daemon=True)
-        self.thr_file_preparing = Thread(target=self.file_preparing, args=(), daemon=True)
+        # self.thr_file_preparing = Thread(target=self.file_preparing, args=(), daemon=True)
 
         self.thr_client_rx_should_work = False
         self.thr_client_tx_should_work = False
-        self.thr_file_preparing_should_work = False
+        # self.thr_file_preparing_should_work = False
 
         self.thr_client_rx.start()
         self.thr_client_tx.start()
-        self.thr_file_preparing.start()
+        # self.thr_file_preparing.start()
 
 
     def connect_server_handler(self):
@@ -266,6 +278,10 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             logger.error(f"IndexError. {ex}")
             self.close_connection()
             self.set_text_browser(f"Bad address format!")
+        except ConnectionRefusedError as ex:
+            logger.error(f"ConnectionRefusedError. {ex}")
+            self.close_connection()
+            self.set_text_browser(f"Bad address! Сheck that the address is correct!")
 
     def play_wav_file_handler(self):
         logger.info("Play WAV file handler")
@@ -359,33 +375,46 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         period_send_idle = 0.5 #sec
 
         send_error_once = 1
+        send_error_once_file = 1
 
         while True:
 
-            # message = "0".encode("utf-8")
             message = "idle".encode("utf-8")
 
             if self.thr_client_tx_should_work is True and self.play_wav_file == AudioUIApp.PLAY_WAV_FILE_PLAYING and \
-                self._file_audio.get_ready_upload_all_data() and self.current_mode == AudioUIApp.CURRENT_MODE_FILE:
+                self.current_mode == AudioUIApp.CURRENT_MODE_FILE:
 
-                message = self._file_audio.get_next_chunk_data(AudioUIApp.MSG_LEN_BYTES)
+                chunk = int(AudioUIApp.MSG_LEN_BYTES * 
+                            (self._file_audio.get_source_sample_rate() / self._converter.get_target_sample_rate()))
+                
+
+                
+                if self._file_audio.is_prepared_data_end():
+                    message = self._file_audio.read(chunk * self._num_prepared_msg_audio)
+                    message = self._converter.convert_file(message, self._file_audio.get_source_sample_rate())
+                    self._file_audio.set_prepared_data(message, self._num_prepared_msg_audio)
+
+                if self._file_audio.is_file_end():
+                    self._file_audio.restart_file()
+
+                message = self._file_audio.get_chunk_prepared_data(AudioUIApp.MSG_LEN_BYTES)
                 message = AudioUIApp.set_volume(message, self.volume)
                 message = message.astype(np.int16)
+
                 try:
                     self._connection.send(message)
-                    send_error_once = 1
+                    send_error_once_file = 1
                 except socket.timeout as ex:
-                    logger.error(f"Send audio error. {ex}")
-                    if send_error_once != 0:
-                        logger.error(f"Broken pip error: {ex}")
+                    if send_error_once_file != 0:
+                        logger.error(f"Send audio error: {ex}")
                         self.set_text_browser(f"Send audio error!")
-                        send_error_once -= 1
+                        send_error_once_file -= 1
                 except BrokenPipeError as ex:
-                    if send_error_once != 0:
+                    if send_error_once_file != 0:
                         logger.error(f"Broken pip error: {ex}")
                         self.set_text_browser(f"Fatal connection lost! Reconnect to server or reboot")
-                        send_error_once -= 1
-                    self.close_connection()
+                        send_error_once_file -= 1
+                        self.close_connection()
 
                 period = self.get_time_period_message()
                 Event().wait(period)
@@ -469,7 +498,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                         val = self._connection.parse_answer_tcp_percent(recv_data)
                         self.set_timeout_period(val)
                         send_error_once = 0
-
                 except socket.timeout as ex:
                     if send_error_once == 0:
                         logger.error(f"Read socket timeout")
@@ -485,36 +513,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             else:                
                 Event().wait(0.001)
     
-    def file_preparing(self):
-      
-        while True:
-            if self.thr_file_preparing_should_work is True:
-
-                try:
-
-                    self.set_text_browser(f"File name: {self.file_name}")
-                    self.set_text_browser(f"Preparing file...")
-
-                    self._file_audio.open(self.file_name_url)
-                    data, sample_rate = self._file_audio.read_all()
-                    self._file_audio.close()
-                    
-                    prepared_data = self._converter.prepare_wav_file(data, sample_rate)
-                    self._file_audio.set_prepared_all_data(prepared_data)
-                    
-                    self.set_text_browser(f"File is ready!")
-
-                except FileNotFoundError as ex:
-                    logger.error(f"File open error. {ex}")
-                    self.text_brows_info.append(f"File not found!")
-                except ValueError as ex:
-                    logger.error(f"Parse WAV file error. {ex}")
-                    self.text_brows_info.append(f"File must have the format '.wav'.")
-
-                self.thr_file_preparing_should_work = False
-
-
-            Event().wait(0.1)
 
 
 def main():
