@@ -78,6 +78,8 @@ class Ui_MainWindow(object):
         self.btn_mode_choice.setObjectName("btn_mode_choice")
         self.horizontalLayout.addWidget(self.btn_mode_choice)
 
+
+
         self.btn_reboot_server = QtWidgets.QToolButton(self.centralwidget)
         self.btn_reboot_server.setMinimumSize(QtCore.QSize(65, 28))
         self.btn_reboot_server.setMaximumSize(QtCore.QSize(65, 28))
@@ -86,6 +88,12 @@ class Ui_MainWindow(object):
         self.btn_reboot_server.setFont(font)
         self.btn_reboot_server.setObjectName("btn_reboot_server")
         self.horizontalLayout.addWidget(self.btn_reboot_server)
+
+        # plt = QtGui.QPalette()
+        # plt.setColor(QtGui.QPalette.Button, QtGui.QColor("#FAD02C"))
+        # self.btn_reboot_server.setPalette(plt)
+        # self.btn_reboot_server.setAutoFillBackground(True)
+
         self.btn_connect_to_server = QtWidgets.QToolButton(self.centralwidget)
         self.btn_connect_to_server.setMinimumSize(QtCore.QSize(175, 28))
         self.btn_connect_to_server.setMaximumSize(QtCore.QSize(65, 28))
