@@ -55,7 +55,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
     DEFAULT_MIC_TIMEOUT_MSG = 0.003
 
     MSG_LEN_BYTES = 512 # 1024 for 16sign
-    PREPARED_MSG_SECONDS = 2
+    PREPARED_MSG_SECONDS = 2 # sec
 
     CURRENT_MODE_FILE = 1
     CURRENT_MODE_MIC = 2 
@@ -393,7 +393,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     message = self._file_audio.read(chunk * self._num_prepared_msg_audio)
                     message = self._converter.convert_file(message, self._file_audio.get_source_sample_rate())
                     self._file_audio.set_prepared_data(message, self._num_prepared_msg_audio)
-                    print("NEW DATA")
 
                 if self._file_audio.is_file_end():
                     self._file_audio.restart_file()
@@ -514,36 +513,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             else:                
                 Event().wait(0.001)
     
-    def file_preparing(self):
-      
-        while True:
-            if self.thr_file_preparing_should_work is True:
-
-                try:
-
-                    self.set_text_browser(f"File name: {self.file_name}")
-                    self.set_text_browser(f"Preparing file...")
-
-                    self._file_audio.open(self.file_name_url)
-                    data, sample_rate = self._file_audio.read_all()
-                    self._file_audio.close()
-                    
-                    prepared_data = self._converter.prepare_wav_file(data, sample_rate)
-                    self._file_audio.set_prepared_all_data(prepared_data)
-                    
-                    self.set_text_browser(f"File is ready!")
-
-                except FileNotFoundError as ex:
-                    logger.error(f"File open error. {ex}")
-                    self.text_brows_info.append(f"File not found!")
-                except ValueError as ex:
-                    logger.error(f"Parse WAV file error. {ex}")
-                    self.text_brows_info.append(f"File must have the format '.wav'.")
-
-                self.thr_file_preparing_should_work = False
-
-
-            Event().wait(0.1)
 
 
 def main():
