@@ -109,6 +109,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.btn_play_mic.setText("Record")
         self.edit_ip_address.setText(f"{TCP_IP}:{str(TCP_PORT)}")
 
+        self.label.setText("Mode: FILE")
+
         self.btn_play_wav_file.setEnabled(True)
         self.btn_load_wav_file.setEnabled(True)
         self.btn_play_mic.setEnabled(False)
@@ -215,7 +217,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         if self.current_mode == AudioUIApp.CURRENT_MODE_FILE:
             self.current_mode = AudioUIApp.CURRENT_MODE_MIC
-            self.btn_mode_choice.setText("MIC")
+            # self.btn_mode_choice.setText("MIC")
+            self.label.setText("Mode: MIC")
             self.set_text_browser(f"MIC audio mode")
 
             self.btn_play_wav_file.setEnabled(False)
@@ -232,7 +235,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             self.btn_play_wav_file.setEnabled(True)
             self.btn_load_wav_file.setEnabled(True)
 
-            self.btn_mode_choice.setText("File")
+            # self.btn_mode_choice.setText("File")
+            # self.label.setText("FILE")
+            self.label.setText("Mode: FILE")
             self.set_text_browser(f"File mode")
             self.disable_mic()
 
