@@ -130,7 +130,8 @@ class Ui_MainWindow(object):
         # self.btn_mode_choice.setObjectName("btn_mode_choice")
         # self.horizontalLayout_10.addWidget(self.btn_mode_choice)
 
-
+        spacerItem5 = QtWidgets.QSpacerItem(5, 5, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
+        self.horizontalLayout_10.addItem(spacerItem5)
 
         self.label = QtWidgets.QLabel(self.centralwidget)
         self.label.setObjectName("label")
