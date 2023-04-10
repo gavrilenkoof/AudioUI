@@ -22,6 +22,8 @@ from communication.client_tcp import ClientTCP
 
 import time
 
+from pyogg import OpusEncoder
+from opuslib import Encoder
 
 TCP_IP = '192.168.0.107'
 TCP_PORT = 7
@@ -54,7 +56,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
     DEFAULT_TIMEOUT_MSG_DELTA = 0.006
     DEFAULT_MIC_TIMEOUT_MSG = 0.003
 
-    MSG_LEN_BYTES = 512 # 1024 for 16sign
+    MSG_LEN_BYTES = 320 # 1024 for 16sign
     PREPARED_MSG_SECONDS = 2 # sec
 
     CURRENT_MODE_FILE = 1
@@ -371,6 +373,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         idle_period = 0.03
 
+
+        opus_encoder = Encoder(16000,1,"audio")
+
         time_last_send_idle = time.time()
         period_send_idle = 0.5 #sec
 
@@ -400,7 +405,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 message = self._file_audio.get_chunk_prepared_data(AudioUIApp.MSG_LEN_BYTES)
                 message = AudioUIApp.set_volume(message, self.volume)
                 message = message.astype(np.int16)
-
+                message = message.tobytes()
+                message = opus_encoder.encode(message,320)
+                logger.info(len(message))
                 try:
                     self._connection.send(message)
                     send_error_once_file = 1
@@ -417,7 +424,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                         self.close_connection()
 
                 period = self.get_time_period_message()
-                Event().wait(period)
+                Event().wait(5)
 
             elif self.thr_client_tx_should_work is True and self.play_audio_mic == AudioUIApp.PLAY_MIC_PLAYING and \
                  self.current_mode == AudioUIApp.CURRENT_MODE_MIC and self._microphone.get_status_connect():
