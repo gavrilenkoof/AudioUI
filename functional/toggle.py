@@ -33,7 +33,7 @@ class Toggle(QCheckBox):
 
         # Setup the rest of the widget.
 
-        self.setContentsMargins(8, 0, 8, 0)
+        self.setContentsMargins(10, 0, 10, 0)
         self._handle_position = 0
 
         self.stateChanged.connect(self.handle_state_change)
