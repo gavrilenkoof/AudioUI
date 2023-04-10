@@ -130,6 +130,16 @@ class Ui_MainWindow(object):
         # self.btn_mode_choice.setObjectName("btn_mode_choice")
         # self.horizontalLayout_10.addWidget(self.btn_mode_choice)
 
+
+
+        self.label = QtWidgets.QLabel(self.centralwidget)
+        self.label.setObjectName("label")
+        font = QtGui.QFont()
+        font.setPointSize(11)
+        self.label.setFont(font)
+        
+        self.horizontalLayout_10.addWidget(self.label)
+
         self.btn_mode_choice = AnimatedToggle(
             checked_color="#308CC6",
             pulse_checked_color="#44308CC6"
@@ -142,17 +152,12 @@ class Ui_MainWindow(object):
         self.btn_mode_choice.setObjectName("btn_mode_choice")
         self.horizontalLayout_10.addWidget(self.btn_mode_choice)
 
+        spacerItem_mode = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        self.horizontalLayout_10.addItem(spacerItem_mode)
 
-        self.label = QtWidgets.QLabel(self.centralwidget)
+
+
         
-
-        self.label.setObjectName("label")
-        font = QtGui.QFont()
-        font.setPointSize(11)
-        self.label.setFont(font)
-
-
-        self.horizontalLayout_10.addWidget(self.label)
         self.verticalLayout_2.addLayout(self.horizontalLayout_10)
         self.horizontalLayout_4 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_4.setObjectName("horizontalLayout_4")
