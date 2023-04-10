@@ -135,7 +135,7 @@ class Ui_MainWindow(object):
         self.label = QtWidgets.QLabel(self.centralwidget)
         self.label.setObjectName("label")
         font = QtGui.QFont()
-        font.setPointSize(11)
+        font.setPointSize(9)
         self.label.setFont(font)
         
         self.horizontalLayout_10.addWidget(self.label)
