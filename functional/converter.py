@@ -16,9 +16,6 @@ class Converter:
         self._need_convert = need_convert
         self._target_sample_rate = target_sample_rate
 
-
-
-
         self._prepared_data_end_file = True
         self._prepared_data = None
         self._number_of_message = 0
