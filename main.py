@@ -18,9 +18,14 @@ import numpy as np
 from functional.microphone import Microphone
 from functional.file_audio import FileAudio
 from functional.converter import Converter
+from functional.opus_codec import OpusCodec
 from communication.client_tcp import ClientTCP
 
+
 import time
+
+
+
 
 
 TCP_IP = '192.168.0.107'
@@ -72,12 +77,13 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.setWindowTitle('Audio')
         self.setWindowIcon(QtGui.QIcon(find_data_file("icons\\mic.png")))
 
-        self._converter = Converter(True, 16000)
+        self._converter = Converter(True, 48000)
         self._file_audio = FileAudio()
         self._microphone = Microphone(1, pyaudio.paInt16)
         self._connection = ClientTCP(address_family=socket.AF_INET, socket_kind=socket.SOCK_STREAM, 
                                     timeout=0.5)
-        
+        self._codec = OpusCodec(self._converter.get_target_sample_rate(), 1, "audio")
+
         self._num_prepared_msg_audio = int((self._converter.get_target_sample_rate() / AudioUIApp.MSG_LEN_BYTES) * AudioUIApp.PREPARED_MSG_SECONDS) + 1
 
         self.current_mode = AudioUIApp.CURRENT_MODE_FILE
