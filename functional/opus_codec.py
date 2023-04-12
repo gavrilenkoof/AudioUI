@@ -16,4 +16,11 @@ class OpusCodec:
         self._mode = mode
 
         self._encoder = Encoder(self._sample_rate, self._channels, self._mode)
-        self._decoder = Decoder(self._sample_rate, self._channels)
+        # self._decoder = Decoder(self._sample_rate, self._channels)
+
+
+    def encode(self, data, chunk):
+        return self._encoder.encode(data, chunk)
+
+    def decode(self):
+        pass

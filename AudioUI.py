@@ -15,7 +15,7 @@ from functional.toggle import AnimatedToggle
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(510, 543)
+        MainWindow.resize(510, 503)
         MainWindow.setMinimumSize(QtCore.QSize(510, 450))
         MainWindow.setMaximumSize(QtCore.QSize(1000, 1000))
         self.centralwidget = QtWidgets.QWidget(MainWindow)
