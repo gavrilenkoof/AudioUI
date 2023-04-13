@@ -56,7 +56,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
     DEFAULT_MIC_TIMEOUT_MSG = 0.003
 
     # MSG_LEN_BYTES = 512 # 1024 for 16sign
-    MSG_LEN_BYTES = 480
+    # MSG_LEN_BYTES = 480
+    MSG_LEN_BYTES = 1920
     PREPARED_MSG_SECONDS = 2 # sec
 
     CURRENT_MODE_FILE = 1
@@ -82,14 +83,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self._codec = OpusCodec(self._converter.get_target_sample_rate(), 1, "audio")
 
         self._num_prepared_msg_audio = int((self._converter.get_target_sample_rate() / AudioUIApp.MSG_LEN_BYTES) * AudioUIApp.PREPARED_MSG_SECONDS) + 1
-
-
-        # chunk = round(AudioUIApp.MSG_LEN_BYTES * 
-                            # (self._microphone.get_source_sample_rate() / self._converter.get_target_sample_rate()))
-        
-        # print(f"chunk:{chunk}, chunk_convert:{chunk_convert}, len(message):{len(message)}, MSG_LEN:{AudioUIApp.MSG_LEN_BYTES}")
-
-
 
         self.current_mode = AudioUIApp.CURRENT_MODE_FILE
         self.play_wav_file = AudioUIApp.PLAY_WAV_FILE_STOP
@@ -457,12 +450,14 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     message = self._converter.convert_mic(message, self._microphone.get_source_sample_rate())
                     message = AudioUIApp.set_volume(message, self.volume)
                     message = message.astype(np.int16)
-                    # message = message.tobytes()
+                    message = message.tobytes()
 
                     # print(message.shape)
 
-                    # chunk_convert = round(chunk * (self._converter.get_target_sample_rate() / self._microphone.get_source_sample_rate()))
-                    # message = self._codec.encode(message, chunk_convert)
+                    chunk_convert = round(chunk * (self._converter.get_target_sample_rate() / self._microphone.get_source_sample_rate()))
+                    message = self._codec.encode(message, chunk_convert)
+
+                    # print(len(message))
 
                     self._connection.send(message)
                     send_error_once = 1
@@ -484,10 +479,10 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 except OSError as ex:
                     logger.error(f"OSError MIC. {ex}")
 
-                # Event().wait(AudioUIApp.DEFAULT_MIC_TIMEOUT_MSG)
-                
-                # Event().wait(0.07)
                 Event().wait(AudioUIApp.DEFAULT_MIC_TIMEOUT_MSG)
+                
+                # Event().wait(0.007)
+                # Event().wait(0.1)
 
             else:
                 try:
