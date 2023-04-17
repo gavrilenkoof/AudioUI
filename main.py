@@ -51,14 +51,16 @@ if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
 
 class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
-    DEFAULT_TIMEOUT_MSG = 0.030
+    DEFAULT_TIMEOUT_MSG = 0.055
     DEFAULT_TIMEOUT_MSG_DELTA = 0.006
     DEFAULT_MIC_TIMEOUT_MSG = 0.003
 
     # MSG_LEN_BYTES = 512 # 1024 for 16sign
     # MSG_LEN_BYTES = 480
     MSG_LEN_BYTES = 1920
-    PREPARED_MSG_SECONDS = 2 # sec
+    # MSG_LEN_BYTES = 2880
+
+    PREPARED_MSG_SECONDS = 5 # sec
 
     CURRENT_MODE_FILE = 1
     CURRENT_MODE_MIC = 2 
@@ -396,19 +398,34 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 chunk = int(AudioUIApp.MSG_LEN_BYTES * 
                             (self._file_audio.get_source_sample_rate() / self._converter.get_target_sample_rate()))
                 
-
+                if self._file_audio.is_file_end():
+                    self._file_audio.restart_file()
                 
                 if self._file_audio.is_prepared_data_end():
                     message = self._file_audio.read(chunk * self._num_prepared_msg_audio)
                     message = self._converter.convert_file(message, self._file_audio.get_source_sample_rate())
                     self._file_audio.set_prepared_data(message, self._num_prepared_msg_audio)
 
-                if self._file_audio.is_file_end():
-                    self._file_audio.restart_file()
 
                 message = self._file_audio.get_chunk_prepared_data(AudioUIApp.MSG_LEN_BYTES)
                 message = AudioUIApp.set_volume(message, self.volume)
                 message = message.astype(np.int16)
+                message = message.tobytes()
+
+                # print(f"Before codec:{len(message)}")
+
+
+                if len(message) != (2 * AudioUIApp.MSG_LEN_BYTES):
+                    message += (b"\x00" * (2 * AudioUIApp.MSG_LEN_BYTES - len(message)))
+                    print(f"after rjust: {len(message)}")
+
+
+                
+                
+                chunk_convert = round(chunk * (self._converter.get_target_sample_rate() / self._file_audio.get_source_sample_rate()))
+                message = self._codec.encode(message, chunk_convert)
+
+                # print(len(message))
 
                 try:
                     self._connection.send(message)
