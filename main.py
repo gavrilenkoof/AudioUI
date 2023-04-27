@@ -57,8 +57,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
     # MSG_LEN_BYTES = 512 # 1024 for 16sign
     # MSG_LEN_BYTES = 480
-    MSG_LEN_BYTES = 1920
-    # MSG_LEN_BYTES = 2880
+    # MSG_LEN_BYTES = 1920
+    MSG_LEN_BYTES = 2880
 
     PREPARED_MSG_SECONDS = 5 # sec
 
