@@ -149,6 +149,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         try:
             self._connection.send("reboot".encode("utf-8"))
+            self.close_connection()
         except OSError as ex:
             logger.error(f"Send reboot error: {ex}")
             self.set_text_browser(f"Send reboot error")
@@ -277,6 +278,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         try:
             tcp_ip, tcp_port = self.get_ip_address()
             self._connection.connect(tcp_ip, tcp_port)
+            # self._connection.connect("google.com", 80)
             self.thr_client_tx_should_work = True
             self.thr_client_rx_should_work = True
             self.set_text_browser(f"Connection to {tcp_ip}:{tcp_port} successfully")
@@ -507,6 +509,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                         time_last_send_idle = time.time()
                         self._connection.send(message)
                         send_error_once = 1
+                        # logger.warning("idle")
                 except BrokenPipeError as ex:
                     if send_error_once != 0:
                         logger.error(f"Broken pip error: {ex}")
