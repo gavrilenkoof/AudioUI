@@ -511,8 +511,10 @@ class WavAudio:
             self._handle_pad_byte(count)
 
         if channels > 1:
-            data = data.reshape(-1, channels)
-
+            try:
+                data = data.reshape(-1, channels)   # TODO CHECK ERROR
+            except ValueError:
+                data = data[:int(chunk / channels)] # dont know, but sometimes channel == 1, but in header channel == 2 
 
         start = self._fid.tell()
         if start >= self._size_data:

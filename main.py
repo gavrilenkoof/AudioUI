@@ -51,8 +51,8 @@ if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
 
 class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
-    DEFAULT_TIMEOUT_MSG = 0.055
-    DEFAULT_TIMEOUT_MSG_DELTA = 0.006
+    DEFAULT_TIMEOUT_MSG = 0.08
+    DEFAULT_TIMEOUT_MSG_DELTA = 0.005
     DEFAULT_MIC_TIMEOUT_MSG = 0.003
 
     # MSG_LEN_BYTES = 512 # 1024 for 16sign
@@ -82,7 +82,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self._microphone = Microphone(1, pyaudio.paInt16)
         self._connection = ClientTCP(address_family=socket.AF_INET, socket_kind=socket.SOCK_STREAM, 
                                     timeout=0.5)
-        self._codec = OpusCodec(self._converter.get_target_sample_rate(), 1, "audio")
+        self._codec = OpusCodec(self._converter.get_target_sample_rate(), 1, "voip")
 
         self._num_prepared_msg_audio = int((self._converter.get_target_sample_rate() / AudioUIApp.MSG_LEN_BYTES) * AudioUIApp.PREPARED_MSG_SECONDS) + 1
 
@@ -355,17 +355,17 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             def_val = AudioUIApp.DEFAULT_TIMEOUT_MSG
 
         if val >= 0 and val <= 30:
-            def_val = def_val - 4 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA      
+            def_val = def_val - 5 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA      
         elif val >= 30 and val < 40:
-            def_val = def_val - 3 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
+            def_val = def_val - 5 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
         elif val >= 40 and val < 50:
-            def_val = def_val - 1 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
+            def_val = def_val - 5 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
         elif val >= 50 and val < 70:
-            def_val = def_val
+            def_val = def_val - 5 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
         elif val >= 70 and val < 80:
-            def_val = def_val + 1 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
+            def_val = def_val 
         elif val >= 80 and val < 90:
-            def_val = def_val + 3 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
+            def_val = def_val + 2 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
         elif val >= 90:
             def_val = def_val + 4 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA   
 

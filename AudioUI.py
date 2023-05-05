@@ -284,7 +284,7 @@ class Ui_MainWindow(object):
         self.horizontalLayout_8.setObjectName("horizontalLayout_8")
         self.slider_volume = QtWidgets.QSlider(self.centralwidget)
         self.slider_volume.setMaximum(100)
-        self.slider_volume.setProperty("value", 50)
+        self.slider_volume.setProperty("value", 1)
         self.slider_volume.setOrientation(QtCore.Qt.Horizontal)
         self.slider_volume.setObjectName("slider_volume")
         self.horizontalLayout_8.addWidget(self.slider_volume)
