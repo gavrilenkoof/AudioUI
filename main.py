@@ -18,10 +18,11 @@ import numpy as np
 from functional.microphone import Microphone
 from functional.file_audio import FileAudio
 from functional.converter import Converter
+from functional.opus_codec import OpusCodec
 from communication.client_tcp import ClientTCP
 
-import time
 
+import time
 
 TCP_IP = '192.168.0.107'
 TCP_PORT = 7
@@ -50,12 +51,16 @@ if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
 
 class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
-    DEFAULT_TIMEOUT_MSG = 0.030
-    DEFAULT_TIMEOUT_MSG_DELTA = 0.006
+    DEFAULT_TIMEOUT_MSG = 0.08
+    DEFAULT_TIMEOUT_MSG_DELTA = 0.005
     DEFAULT_MIC_TIMEOUT_MSG = 0.003
 
-    MSG_LEN_BYTES = 512 # 1024 for 16sign
-    PREPARED_MSG_SECONDS = 2 # sec
+    # MSG_LEN_BYTES = 512 # 1024 for 16sign
+    # MSG_LEN_BYTES = 480
+    # MSG_LEN_BYTES = 1920
+    MSG_LEN_BYTES = 2880
+
+    PREPARED_MSG_SECONDS = 5 # sec
 
     CURRENT_MODE_FILE = 1
     CURRENT_MODE_MIC = 2 
@@ -72,12 +77,13 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.setWindowTitle('Audio')
         self.setWindowIcon(QtGui.QIcon(find_data_file("icons\\mic.png")))
 
-        self._converter = Converter(True, 16000)
+        self._converter = Converter(True, 48000)
         self._file_audio = FileAudio()
         self._microphone = Microphone(1, pyaudio.paInt16)
         self._connection = ClientTCP(address_family=socket.AF_INET, socket_kind=socket.SOCK_STREAM, 
                                     timeout=0.5)
-        
+        self._codec = OpusCodec(self._converter.get_target_sample_rate(), 1, "voip")
+
         self._num_prepared_msg_audio = int((self._converter.get_target_sample_rate() / AudioUIApp.MSG_LEN_BYTES) * AudioUIApp.PREPARED_MSG_SECONDS) + 1
 
         self.current_mode = AudioUIApp.CURRENT_MODE_FILE
@@ -143,6 +149,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         try:
             self._connection.send("reboot".encode("utf-8"))
+            self.close_connection()
         except OSError as ex:
             logger.error(f"Send reboot error: {ex}")
             self.set_text_browser(f"Send reboot error")
@@ -271,6 +278,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         try:
             tcp_ip, tcp_port = self.get_ip_address()
             self._connection.connect(tcp_ip, tcp_port)
+            # self._connection.connect("google.com", 80)
             self.thr_client_tx_should_work = True
             self.thr_client_rx_should_work = True
             self.set_text_browser(f"Connection to {tcp_ip}:{tcp_port} successfully")
@@ -347,17 +355,17 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             def_val = AudioUIApp.DEFAULT_TIMEOUT_MSG
 
         if val >= 0 and val <= 30:
-            def_val = def_val - 4 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA      
+            def_val = def_val - 5 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA      
         elif val >= 30 and val < 40:
-            def_val = def_val - 3 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
+            def_val = def_val - 5 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
         elif val >= 40 and val < 50:
-            def_val = def_val - 1 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
+            def_val = def_val - 5 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
         elif val >= 50 and val < 70:
-            def_val = def_val
+            def_val = def_val - 5 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
         elif val >= 70 and val < 80:
-            def_val = def_val + 1 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
+            def_val = def_val 
         elif val >= 80 and val < 90:
-            def_val = def_val + 3 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
+            def_val = def_val + 2 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
         elif val >= 90:
             def_val = def_val + 4 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA   
 
@@ -392,19 +400,34 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 chunk = int(AudioUIApp.MSG_LEN_BYTES * 
                             (self._file_audio.get_source_sample_rate() / self._converter.get_target_sample_rate()))
                 
-
+                if self._file_audio.is_file_end():
+                    self._file_audio.restart_file()
                 
                 if self._file_audio.is_prepared_data_end():
                     message = self._file_audio.read(chunk * self._num_prepared_msg_audio)
                     message = self._converter.convert_file(message, self._file_audio.get_source_sample_rate())
                     self._file_audio.set_prepared_data(message, self._num_prepared_msg_audio)
 
-                if self._file_audio.is_file_end():
-                    self._file_audio.restart_file()
 
                 message = self._file_audio.get_chunk_prepared_data(AudioUIApp.MSG_LEN_BYTES)
                 message = AudioUIApp.set_volume(message, self.volume)
                 message = message.astype(np.int16)
+                message = message.tobytes()
+
+                # print(f"Before codec:{len(message)}")
+
+
+                if len(message) != (2 * AudioUIApp.MSG_LEN_BYTES):
+                    message += (b"\x00" * (2 * AudioUIApp.MSG_LEN_BYTES - len(message)))
+                    print(f"after rjust: {len(message)}")
+
+
+                
+                
+                chunk_convert = round(chunk * (self._converter.get_target_sample_rate() / self._file_audio.get_source_sample_rate()))
+                message = self._codec.encode(message, chunk_convert)
+
+                # print(len(message))
 
                 try:
                     self._connection.send(message)
@@ -429,19 +452,35 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 
                 chunk = int(AudioUIApp.MSG_LEN_BYTES * 
                             (self._microphone.get_source_sample_rate() / self._converter.get_target_sample_rate()))
-
                 try:
                     message = self._microphone.read(chunk)
 
                     if message is None:
                         continue
 
+                    # message = np.frombuffer(message, dtype=np.int16)
+                    # message = self._converter.convert_mic(message, self._microphone.get_source_sample_rate())
+                    # message = AudioUIApp.set_volume(message, self.volume)
+                    # message = message.astype(np.int16)
+                    # self._connection.send(message)
+                    # send_error_once = 1
+
                     message = np.frombuffer(message, dtype=np.int16)
                     message = self._converter.convert_mic(message, self._microphone.get_source_sample_rate())
                     message = AudioUIApp.set_volume(message, self.volume)
                     message = message.astype(np.int16)
+                    message = message.tobytes()
+
+                    # print(message.shape)
+
+                    chunk_convert = round(chunk * (self._converter.get_target_sample_rate() / self._microphone.get_source_sample_rate()))
+                    message = self._codec.encode(message, chunk_convert)
+
+                    # print(len(message))
+
                     self._connection.send(message)
                     send_error_once = 1
+
 
                 except BrokenPipeError as ex:
                     if send_error_once != 0:
@@ -460,6 +499,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     logger.error(f"OSError MIC. {ex}")
 
                 Event().wait(AudioUIApp.DEFAULT_MIC_TIMEOUT_MSG)
+                
+                # Event().wait(0.007)
+                # Event().wait(0.1)
 
             else:
                 try:
@@ -467,6 +509,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                         time_last_send_idle = time.time()
                         self._connection.send(message)
                         send_error_once = 1
+                        # logger.warning("idle")
                 except BrokenPipeError as ex:
                     if send_error_once != 0:
                         logger.error(f"Broken pip error: {ex}")
