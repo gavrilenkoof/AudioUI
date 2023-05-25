@@ -51,7 +51,7 @@ if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
 
 class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
-    DEFAULT_TIMEOUT_MSG = 0.08
+    DEFAULT_TIMEOUT_MSG = 0.055
     DEFAULT_TIMEOUT_MSG_DELTA = 0.005
     DEFAULT_MIC_TIMEOUT_MSG = 0.003
 
@@ -355,13 +355,13 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             def_val = AudioUIApp.DEFAULT_TIMEOUT_MSG
 
         if val >= 0 and val <= 30:
-            def_val = def_val - 5 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA      
+            def_val = def_val - 0 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA      
         elif val >= 30 and val < 40:
-            def_val = def_val - 5 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
+            def_val = def_val - 0 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
         elif val >= 40 and val < 50:
-            def_val = def_val - 5 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
+            def_val = def_val - 0 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
         elif val >= 50 and val < 70:
-            def_val = def_val - 5 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
+            def_val = def_val - 0 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
         elif val >= 70 and val < 80:
             def_val = def_val 
         elif val >= 80 and val < 90:
@@ -419,7 +419,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
                 if len(message) != (2 * AudioUIApp.MSG_LEN_BYTES):
                     message += (b"\x00" * (2 * AudioUIApp.MSG_LEN_BYTES - len(message)))
-                    print(f"after rjust: {len(message)}")
+                    # print(f"after rjust: {len(message)}")
 
 
                 
