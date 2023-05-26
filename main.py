@@ -210,6 +210,13 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         self.thr_client_tx_should_work = False
         self.thr_client_rx_should_work = False
+
+        try:
+            message = "idle".encode("utf-8") # for stop playing audio
+            self._connection.send(message)
+        except:
+            logger.debug("Send close idle error")
+
         self._connection.disconnect()
 
     def disable_mic(self):
