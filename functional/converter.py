@@ -14,9 +14,12 @@ class Converter:
     def __init__(self, need_convert, target_sample_rate):
         super(Converter, self).__init__()
         self._need_convert = need_convert
-        # self._mic_source_sample_rate = source_sample_rate
         self._target_sample_rate = target_sample_rate
-        # self.form = format
+
+        self._prepared_data_end_file = True
+        self._prepared_data = None
+        self._number_of_message = 0
+        self._all_number = 0
 
 
     def convert_mic(self, message, source_sample_rate):
@@ -50,33 +53,70 @@ class Converter:
             data = np.delete(data, np.arange(1, data.shape[0], 2))
 
         if data.dtype == np.uint8:
-            logger.warning("Convert from uint8 to int16 format")
             data = data.astype(np.int16)
             data = Converter.map_int(data)
 
-        logger.debug(f"source sample rate: {source_sample_rate}")
+
+
+
         number_of_samples = round(len(data) * self._target_sample_rate / source_sample_rate)
         data = sps.resample(data, number_of_samples, window="triang")
-        logger.debug(f"new sample rate: {self._target_sample_rate}")
+        # data = sps.resample(data, number_of_samples, window="blackman")
 
-        max_val = np.max(np.abs(data))
-        if max_val != 0:
-            target_max_val = (32767 * Converter.db_to_float(-1.0))
-            data = Converter.normalize(data, max_val, target_max_val)
+        # max_val = 32000
+        # if max_val != 0:
+        #     target_max_val = (32767 * Converter.db_to_float(-0.1))
+        #     data = Converter.normalize(data, max_val, target_max_val)
 
+
+        # data = self._butter_highpass_filter(data, 50, self._target_sample_rate)
+        # data = self._butter_lowpass_filter(data, 7999, self._target_sample_rate, 5)
 
         return data
+    
+
+    def _butter_highpass(self, cutoff, fs, order=5):
+        nyq = 0.5 * fs
+        normal_cutoff = cutoff / nyq
+        b, a = sps.butter(order, normal_cutoff, btype='high', analog=False)
+        return b, a
+
+    def _butter_highpass_filter(self, data, cutoff, fs, order=5):
+        b, a = self._butter_highpass(cutoff, fs, order=order)
+        y = sps.filtfilt(b, a, data)
+        return y
+    
+    def _butter_lowpass(self, cutoff, fs, order=5):
+        return sps.butter(order, cutoff, fs=fs, btype='low', analog=False)
+
+    def _butter_lowpass_filter(self, data, cutoff, fs, order=5):
+        b, a = self._butter_lowpass(cutoff, fs, order=order)
+        y = sps.lfilter(b, a, data)
+        return y
 
 
-    def prepare_wav_file(self, data, source_sample_rate):
+    # def get_chunk_prepared_data(self, chunk):
+    #     data = self._prepared_data[self._number_of_message * chunk: (self._number_of_message + 1) * chunk]
 
+    #     if self._number_of_message >= self._all_number - 1:
+    #         self._prepared_data_end_file = True
+    #         self._number_of_message = 0
+    #     else:
+    #         self._number_of_message += 1
+
+    #     return data
+
+
+    def convert_file(self, data, source_sample_rate):
         new_data = data
-
         if self._need_convert is True:
-            logger.info("Prepare wav file")
-            new_data = self._converting_file(data, source_sample_rate)
+            new_data = self._converting_file(new_data, source_sample_rate)
 
         return new_data
 
     def get_target_sample_rate(self):
         return self._target_sample_rate
+    
+
+    # def is_prepared_data_end(self):
+    #     return self._prepared_data_end_file 

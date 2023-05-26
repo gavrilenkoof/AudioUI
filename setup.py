@@ -2,7 +2,7 @@ import os
 import sys
 from setuptools import setup
 
-version="1.1.1"
+version="2.0.0"
 upgrade_code = '{F46BA620-C027-4E68-9069-5D5D4E1FF30A}',
 
 HUMAN_FRIENDLY_NAME = 'AudioUI'
@@ -11,7 +11,7 @@ HUMAN_FRIENDLY_NAME_DIR = HUMAN_FRIENDLY_NAME + f"_v{version}"
 company_name = 'UAV'
 product_name = HUMAN_FRIENDLY_NAME
 
-include_files = ["icons"]
+include_files = ["icons", "opus.dll"]
 
 
 
