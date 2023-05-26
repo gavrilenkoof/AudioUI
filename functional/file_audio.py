@@ -15,7 +15,7 @@ class FileAudio:
         super(FileAudio, self).__init__()
 
         self._is_file_open = False
-
+        self._is_wav_file = False
 
         # vars for prepared data
         self._prepared_data = None
@@ -38,6 +38,12 @@ class FileAudio:
     
     def restart_file(self):
         self._wav_file_handler.restart_file()
+
+    def is_correct_wav_file(self):
+        return self._is_wav_file
+    
+    def set_correct_wav_file(self, bool):
+        self._is_wav_file = bool
 
 
     def open(self, file_name_url):

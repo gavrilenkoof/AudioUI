@@ -14,8 +14,8 @@ __copyright__ = 'Copyright (c) 2012, SvartalF'
 __license__ = 'BSD 3-Clause License'
 
 
-# lib_location = find_library('opus')
-lib_location = find_library("./opus.dll")
+lib_location = find_library('opus')
+# lib_location = find_library("./opus.dll")
 
 if lib_location is None:
     raise Exception(

@@ -177,18 +177,21 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         try:
             self._file_audio.open(self.file_name_url)
+            self._file_audio.set_correct_wav_file(True)
             self.set_text_browser(f"File name: {self.file_name}")
             logger.debug(f"File is ready!")
             self.set_text_browser(f"File is ready!")
         except FileNotFoundError as ex:
             logger.error(f"File open error. {ex}")
             self.text_brows_info.append(f"File not found!")
+            self.close_file()
         except ValueError as ex:
             logger.error(f"Parse WAV file error. {ex}")
             self.text_brows_info.append(f"File must have the format '.wav'.")
+            self.close_file()
+            
         
 
-        # self.set_text_browser(f"{self._file_audio.get_source_sample_rate()}")
 
     @staticmethod
     def set_volume(x, volume):
@@ -200,6 +203,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self._file_audio.close()
         self.play_wav_file = AudioUIApp.PLAY_WAV_FILE_STOP
         self.btn_play_wav_file.setText("Play file")
+        self._file_audio.set_correct_wav_file(False)
 
 
     def close_connection(self):
@@ -395,7 +399,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             message = "idle".encode("utf-8")
 
             if self.thr_client_tx_should_work is True and self.play_wav_file == AudioUIApp.PLAY_WAV_FILE_PLAYING and \
-                self.current_mode == AudioUIApp.CURRENT_MODE_FILE:
+                self.current_mode == AudioUIApp.CURRENT_MODE_FILE and self._file_audio.is_correct_wav_file():
 
                 chunk = int(AudioUIApp.MSG_LEN_BYTES * 
                             (self._file_audio.get_source_sample_rate() / self._converter.get_target_sample_rate()))
@@ -405,6 +409,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 
                 if self._file_audio.is_prepared_data_end():
                     message = self._file_audio.read(chunk * self._num_prepared_msg_audio)
+
                     message = self._converter.convert_file(message, self._file_audio.get_source_sample_rate())
                     self._file_audio.set_prepared_data(message, self._num_prepared_msg_audio)
 
@@ -414,20 +419,13 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 message = message.astype(np.int16)
                 message = message.tobytes()
 
-                # print(f"Before codec:{len(message)}")
-
-
                 if len(message) != (2 * AudioUIApp.MSG_LEN_BYTES):
                     message += (b"\x00" * (2 * AudioUIApp.MSG_LEN_BYTES - len(message)))
-                    # print(f"after rjust: {len(message)}")
-
-
-                
+       
                 
                 chunk_convert = round(chunk * (self._converter.get_target_sample_rate() / self._file_audio.get_source_sample_rate()))
                 message = self._codec.encode(message, chunk_convert)
 
-                # print(len(message))
 
                 try:
                     self._connection.send(message)
@@ -457,13 +455,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
                     if message is None:
                         continue
-
-                    # message = np.frombuffer(message, dtype=np.int16)
-                    # message = self._converter.convert_mic(message, self._microphone.get_source_sample_rate())
-                    # message = AudioUIApp.set_volume(message, self.volume)
-                    # message = message.astype(np.int16)
-                    # self._connection.send(message)
-                    # send_error_once = 1
 
                     message = np.frombuffer(message, dtype=np.int16)
                     message = self._converter.convert_mic(message, self._microphone.get_source_sample_rate())
