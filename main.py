@@ -208,14 +208,18 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
     def close_connection(self):
 
-        self.thr_client_tx_should_work = False
-        self.thr_client_rx_should_work = False
+
 
         try:
             message = "idle".encode("utf-8") # for stop playing audio
             self._connection.send(message)
         except:
             logger.debug("Send close idle error")
+
+        self.thr_client_tx_should_work = False
+        self.thr_client_rx_should_work = False
+
+        Event().wait(0.05)
 
         self._connection.disconnect()
 
@@ -498,8 +502,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
                 Event().wait(AudioUIApp.DEFAULT_MIC_TIMEOUT_MSG)
                 
-                # Event().wait(0.007)
-                # Event().wait(0.1)
 
             else:
                 try:
