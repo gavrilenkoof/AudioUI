@@ -416,8 +416,11 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         time_last_send_idle = time.time()
         period_send_idle = 0.5 #sec
 
-        send_error_once = 1
-        send_error_once_file = 1
+        SEND_ERR_COUNT = 1
+
+        send_error_once = SEND_ERR_COUNT
+        send_error_once_file = SEND_ERR_COUNT
+        send_error_once_mic = SEND_ERR_COUNT
 
         while True:
 
@@ -456,12 +459,12 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     self._connection.send(message)
                     send_error_once_file = 1
                 except socket.timeout as ex:
-                    if send_error_once_file != 0:
+                    if send_error_once_file > 0:
                         logger.error(f"Send audio error: {ex}")
                         self.set_text_browser(f"Send audio error!")
                         send_error_once_file -= 1
                 except BrokenPipeError as ex:
-                    if send_error_once_file != 0:
+                    if send_error_once_file > 0:
                         logger.error(f"Broken pip error: {ex}")
                         self.set_text_browser(f"Fatal connection lost! Reconnect to server or reboot")
                         send_error_once_file -= 1
@@ -495,24 +498,25 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     # print(len(message))
 
                     self._connection.send(message)
-                    send_error_once = 1
+                    send_error_once_mic = 1
 
 
                 except BrokenPipeError as ex:
-                    if send_error_once != 0:
+                    if send_error_once_mic > 0:
                         logger.error(f"Broken pip error: {ex}")
                         self.set_text_browser(f"Fatal connection lost! Try to reconnect or reboot server!")
-                        send_error_once -= 1
+                        send_error_once_mic -= 1
                     self.close_connection()
                 except socket.timeout as ex:
-                    if send_error_once != 0:
+                    if send_error_once_mic > 0:
                         logger.error(f"Send microphone data error. {ex}")
                         self.set_text_browser(f"Send microphone data error!")
-                        send_error_once -= 1
+                        send_error_once_mic -= 1
                 except AttributeError as ex:
                     logger.error(f"AttributeError MIC. {ex}")
                 except OSError as ex:
                     logger.error(f"OSError MIC. {ex}")
+
 
                 Event().wait(AudioUIApp.DEFAULT_MIC_TIMEOUT_MSG)
                 
@@ -525,22 +529,23 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                         send_error_once = 1
                         # logger.warning("idle")
                 except BrokenPipeError as ex:
-                    if send_error_once != 0:
+                    if send_error_once > 0:
                         logger.error(f"Broken pip error: {ex}")
                         self.set_text_browser(f"Fatal connection lost! Try to reconnect or reboot server!")
+                        send_error_once -= 1
                     self.close_connection()
                 except AttributeError as ex:
                     logger.debug(f"AttributeError. {ex}")
                 except socket.timeout as ex:
-                    if send_error_once != 0:
+                    if send_error_once > 0:
                         logger.error(f"Send idle error. {ex}")
                         self.set_text_browser(f"Fatal connection lost! Try to reconnect or reboot server!")
+                        send_error_once -= 1
                 except ConnectionResetError as ex:
-                    if send_error_once != 0:
+                    if send_error_once > 0:
                         logger.error(f"Send message error. {ex}")
                         self.set_text_browser(f"Fatal connection lost! Try to reconnect or reboot server!")
-                finally:
-                    send_error_once -= 1
+                        send_error_once -= 1
 
                 Event().wait(idle_period)
 
@@ -562,11 +567,11 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                         send_error_once = 0
                         # logger.debug(f"{val}")
                 except socket.timeout as ex:
-                    if send_error_once == 0:
+                    if send_error_once > 0:
                         logger.error(f"Read socket timeout")
                 except OSError as ex:
                     logger.error(f"Read OSError. Bad file descriptor: {ex}")
-                    if send_error_once == 0:
+                    if send_error_once > 0:
                         self.set_text_browser(f"Fatal connection lost! Try to reconnect or reboot server!")
                 finally:
                     send_error_once = 1
