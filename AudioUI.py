@@ -92,7 +92,7 @@ class Ui_MainWindow(object):
         self.label_telem = QtWidgets.QLabel(self.centralwidget)
         self.label_telem.setObjectName("label_telem")
         self.horizontalLayout.addWidget(self.label_telem)
-        self.label_telem.setText("NaN")
+        self.label_telem.setText("0 %")
         
 
 
