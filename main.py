@@ -20,6 +20,7 @@ from functional.file_audio import FileAudio
 from functional.converter import Converter
 from functional.opus_codec import OpusCodec
 from communication.client_tcp import ClientTCP
+from communication.client_udp import ClientUDP
 
 
 import time
@@ -80,8 +81,10 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self._converter = Converter(True, 48000)
         self._file_audio = FileAudio()
         self._microphone = Microphone(1, pyaudio.paInt16)
-        self._connection = ClientTCP(address_family=socket.AF_INET, socket_kind=socket.SOCK_STREAM, 
-                                    timeout=0.5)
+        # self._connection = ClientTCP(address_family=socket.AF_INET, socket_kind=socket.SOCK_STREAM, 
+        #                             timeout=0.5)
+        self._connection = ClientUDP(address_family=socket.AF_INET, socket_kind=socket.SOCK_DGRAM, 
+                                    timeout=5)
         self._codec = OpusCodec(self._converter.get_target_sample_rate(), 1, "voip")
 
         self._num_prepared_msg_audio = int((self._converter.get_target_sample_rate() / AudioUIApp.MSG_LEN_BYTES) * AudioUIApp.PREPARED_MSG_SECONDS) + 1
@@ -208,8 +211,6 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
     def close_connection(self):
 
-
-
         try:
             message = "idle".encode("utf-8") # for stop playing audio
             self._connection.send(message)
@@ -288,12 +289,25 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
     def connect_server_handler(self):
         logger.info("Connecting to the server handler")
 
+        # ip = "192.168.0.107"
+        # port = 7
+        # s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
+        # send_data = "Type some text to send =>";
+        # s.sendto(send_data.encode('utf-8'), (ip, port))
+        # print("\n\n 1. Client Sent : ", send_data, "\n\n")
+        # data, address = s.recvfrom(4096)
+        # print("\n\n 2. Client received : ", data.decode('utf-8'), "\n\n")
+        # s.close()
+
+
         self.close_connection()
 
         try:
             tcp_ip, tcp_port = self.get_ip_address()
             self._connection.connect(tcp_ip, tcp_port)
             # self._connection.connect("google.com", 80)
+            # self._connection.send("test".encode())
+            # ret = self._connection.read(32)
             self.thr_client_tx_should_work = True
             self.thr_client_rx_should_work = True
             self.set_text_browser(f"Connection to {tcp_ip}:{tcp_port} successfully")
@@ -391,7 +405,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
         self.set_time_period_message(def_val)
 
-        logger.debug(f"{val}")
+        # logger.debug(f"{val}")
           
 
  
@@ -543,9 +557,10 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 try:
                     recv_data = self._connection.read(32)
                     if recv_data is not None:
-                        val = self._connection.parse_answer_tcp_percent(recv_data)
+                        val = self._connection.parse_answer_percent(recv_data)
                         self.set_timeout_period(val)
                         send_error_once = 0
+                        # logger.debug(f"{val}")
                 except socket.timeout as ex:
                     if send_error_once == 0:
                         logger.error(f"Read socket timeout")

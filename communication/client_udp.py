@@ -6,10 +6,10 @@ from log import get_logger
 logger = get_logger(__name__.replace('__', ''))
 
 
-class ClientTCP:
+class ClientUDP:
 
     def __init__(self, address_family, socket_kind, timeout=1.5):
-        super(ClientTCP, self).__init__()
+        super(ClientUDP, self).__init__()
 
         self._address_family = address_family
         self._socket_kind = socket_kind
@@ -18,6 +18,7 @@ class ClientTCP:
         self._port = 0
         self._timeout = timeout
         self._connected = False
+        
 
     def get_connection_status(self):
         return self._connected
@@ -26,9 +27,9 @@ class ClientTCP:
         self._ip = ip
         self._port = port
 
-        self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._socket = socket.socket( self._address_family, self._socket_kind, 0)
         self._socket.settimeout(self._timeout)
-        self._socket.connect((self._ip, self._port))
+        # self._socket.connect((self._ip, self._port))
         
         self._connected = True
 
@@ -65,14 +66,15 @@ class ClientTCP:
         return data
     
     def _read_data(self, msg_len):
-        return self._socket.recv(msg_len)
+        # return self._socket.recv(msg_len)
+        return self._socket.recvfrom(msg_len)
 
     def _send_data(self, data):
-        self._socket.send(data)
+        self._socket.sendto(data, (self._ip, self._port))
 
 
     def parse_answer_percent(self, data):
-        new_data = data.decode("utf-8")
+        new_data = data[0].decode("utf-8")
 
         # pos_start = new_data.find("per:")
         # pos_end = new_data.find(",")
@@ -85,6 +87,5 @@ class ClientTCP:
             val = int(match[0][4:])
         except TypeError as ex:
             logger.error(f"Parse percent error: {ex}. Match:{match}. Set val = 50")
-
 
         return val
