@@ -87,6 +87,15 @@ class Ui_MainWindow(object):
         self.edit_ip_address.setFont(font)
         self.edit_ip_address.setObjectName("edit_ip_address")
         self.horizontalLayout.addWidget(self.edit_ip_address)
+
+
+        self.label_telem = QtWidgets.QLabel(self.centralwidget)
+        self.label_telem.setObjectName("label_telem")
+        self.horizontalLayout.addWidget(self.label_telem)
+        self.label_telem.setText("NaN")
+        
+
+
         spacerItem1 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem1)
         self.verticalLayout.addLayout(self.horizontalLayout)

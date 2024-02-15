@@ -564,6 +564,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                         val = self._connection.parse_answer_percent(recv_data)
                         self.set_timeout_period(val)
                         self.clear_timestamp_error_rx()
+                        self.label_telem.setText(f"{val} %")
                 except socket.timeout as ex:
                         # logger.error(f"Read socket timeout")
                     self.timestamp_timeout_read_rx = self.send_error_periodicaly(f"[ERROR]Megaphone response timeout", 5, self.timestamp_timeout_read_rx)
