@@ -19,6 +19,7 @@ from functional.microphone import Microphone
 from functional.file_audio import FileAudio
 from functional.converter import Converter
 from functional.opus_codec import OpusCodec
+from functional.pid_controller import PIDController
 from communication.client_tcp import ClientTCP
 from communication.client_udp import ClientUDP
 
@@ -84,7 +85,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         # self._connection = ClientTCP(address_family=socket.AF_INET, socket_kind=socket.SOCK_STREAM, 
         #                             timeout=0.5)
         self._connection = ClientUDP(address_family=socket.AF_INET, socket_kind=socket.SOCK_DGRAM, 
-                                    timeout=1.0)
+                                    timeout=1.5)
         self._codec = OpusCodec(self._converter.get_target_sample_rate(), 1, "voip")
 
         self._num_prepared_msg_audio = int((self._converter.get_target_sample_rate() / AudioUIApp.MSG_LEN_BYTES) * AudioUIApp.PREPARED_MSG_SECONDS) + 1
@@ -93,6 +94,21 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.play_wav_file = AudioUIApp.PLAY_WAV_FILE_STOP
         self.play_audio_mic = AudioUIApp.PLAY_MIC_STOP
         self.period = AudioUIApp.DEFAULT_TIMEOUT_MSG 
+
+
+
+        self._kp = -0.5
+        self._ki = -0.01
+        self._kd = 0.0
+        self._alpha = 1
+        # self._pid_min_out = 0
+        # self._pid_max_out = AudioUIApp.DEFAULT_TIMEOUT_MSG
+        self._pid_min_out = AudioUIApp.DEFAULT_TIMEOUT_MSG
+        self._pid_max_out = AudioUIApp.DEFAULT_TIMEOUT_MSG * 4
+        self._max_windup = 1
+
+        self._pid = PIDController(kp=self._kp, ki=self._ki, kd=self._kd, max_windup=self._max_windup, 
+                                alpha=self._alpha, u_bounds=[self._pid_min_out, self._pid_max_out])
         
         self.thread_client_configurations()
         self.widget_adjust()
@@ -327,7 +343,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
     def play_wav_file_handler(self):
         logger.info("Play WAV file handler")
-
+        self._pid.reset_part()
+        self._pid.setStartTime(time.time())
         if self.play_wav_file == AudioUIApp.PLAY_WAV_FILE_STOP:
             self.play_wav_file = AudioUIApp.PLAY_WAV_FILE_PLAYING
             logger.debug("Play file")
@@ -343,7 +360,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
     def play_audio_mic_handler(self):
         logger.info("Play audio MIC handler")
-
+        self._pid.reset_part()
+        self._pid.setStartTime(time.time())
         if self.play_audio_mic == AudioUIApp.PLAY_MIC_STOP:
 
             self._microphone.enable()
@@ -374,38 +392,39 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.period = value
 
     def set_timeout_period(self, val):
-        def_val = AudioUIApp.DEFAULT_TIMEOUT_MSG
+        # def_val = AudioUIApp.DEFAULT_TIMEOUT_MSG
 
-        if self.current_mode == AudioUIApp.CURRENT_MODE_FILE:
-            def_val = AudioUIApp.DEFAULT_TIMEOUT_MSG
-        elif self.current_mode == AudioUIApp.CURRENT_MODE_MIC:
-            def_val = AudioUIApp.DEFAULT_MIC_TIMEOUT_MSG
-        else:
-            def_val = AudioUIApp.DEFAULT_TIMEOUT_MSG
+        # if self.current_mode == AudioUIApp.CURRENT_MODE_FILE:
+        #     def_val = AudioUIApp.DEFAULT_TIMEOUT_MSG
+        # elif self.current_mode == AudioUIApp.CURRENT_MODE_MIC:
+        #     def_val = AudioUIApp.DEFAULT_MIC_TIMEOUT_MSG
+        # else:
+        #     def_val = AudioUIApp.DEFAULT_TIMEOUT_MSG
 
-        if val >= 0 and val <= 30:
-            def_val = def_val - 0 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA      
-        elif val >= 30 and val < 40:
-            def_val = def_val - 0 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
-        elif val >= 40 and val < 50:
-            def_val = def_val - 0 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
-        elif val >= 50 and val < 70:
-            def_val = def_val - 0 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
-        elif val >= 70 and val < 80:
-            def_val = def_val 
-        elif val >= 80 and val < 90:
-            def_val = def_val + 2 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
-        elif val >= 90:
-            def_val = def_val + 4 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA   
+        # if val >= 0 and val <= 30:
+        #     def_val = def_val - 0 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA      
+        # elif val >= 30 and val < 40:
+        #     def_val = def_val - 0 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
+        # elif val >= 40 and val < 50:
+        #     def_val = def_val - 0 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
+        # elif val >= 50 and val < 70:
+        #     def_val = def_val - 0 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
+        # elif val >= 70 and val < 80:
+        #     def_val = def_val 
+        # elif val >= 80 and val < 90:
+        #     def_val = def_val + 2 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
+        # elif val >= 90:
+        #     def_val = def_val + 4 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA   
 
 
-        if def_val <= 0:
-            def_val = 0.001
-            logger.debug(f"new period < 0. Set 0.001 ms")
-
+        # if def_val <= 0:
+        #     def_val = 0.001
+        #     logger.debug(f"new period < 0. Set 0.001 ms")
+        self._pid.setTarget(85);
+        def_val = self._pid.update(val, time.time())
         self.set_time_period_message(def_val)
-
-        logger.debug(f"{val}")
+        logger.debug(f"{def_val}, {val}")
+        # logger.debug(f"{val}")
           
     def send_error_periodicaly(self, err_text, period_s, last_send):
         ret = last_send
