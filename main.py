@@ -467,8 +467,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             message = "idle".encode("utf-8")
 
             if self.thr_client_tx_should_work is True and self.play_wav_file == AudioUIApp.PLAY_WAV_FILE_PLAYING and \
-                self.current_mode == AudioUIApp.CURRENT_MODE_FILE and self._file_audio.is_correct_wav_file() and \
-                self.ready_to_send(time.time(), self.last_timestamp, self.get_time_period_message()):
+                self.current_mode == AudioUIApp.CURRENT_MODE_FILE and self._file_audio.is_correct_wav_file():
+                # self.ready_to_send(time.time(), self.last_timestamp, self.get_time_period_message()):
 
                 self.last_timestamp = time.time()
 
@@ -509,13 +509,13 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     self.close_connection()
 
 
-                # self.period = self.get_time_period_message()
+                self.period = self.get_time_period_message()
                 # self.set_time_period_message(self.period_tx)
-                # Event().wait(period)
+                Event().wait(self.period)
 
             elif self.thr_client_tx_should_work is True and self.play_audio_mic == AudioUIApp.PLAY_MIC_PLAYING and \
-                 self.current_mode == AudioUIApp.CURRENT_MODE_MIC and self._microphone.get_status_connect() \
-                and self.ready_to_send(time.time(), self.last_timestamp, self.get_time_period_message()):
+                 self.current_mode == AudioUIApp.CURRENT_MODE_MIC and self._microphone.get_status_connect():
+                # and self.ready_to_send(time.time(), self.last_timestamp, self.get_time_period_message()):
                 
                 self.last_timestamp = time.time()
 
@@ -556,14 +556,14 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     logger.error(f"OSError MIC. {ex}")
                     pass
                    
-                # self.period = AudioUIApp.DEFAULT_MIC_TIMEOUT_MSG
-                # self.set_time_period_message(self.period_tx)
+                self.set_time_period_message(AudioUIApp.DEFAULT_MIC_TIMEOUT_MSG)
 
             else:
                 try:
-                    # if time.time() - time_last_send_idle >= period_send_idle:
-                    if self.ready_to_send(time.time(), self.last_timestamp, period_send_idle):
-                        self.last_timestamp = time.time()
+                    if time.time() - time_last_send_idle >= period_send_idle:
+                    # if self.ready_to_send(time.time(), self.last_timestamp, period_send_idle):
+                        # self.last_timestamp = time.time()
+                        time_last_send_idle = time.time()
                         self._connection.send(message)
                         self.clear_timestamp_error_tx()
                 except BrokenPipeError as ex:
@@ -578,9 +578,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
                 # self.period_tx = period_send_idle
                 # self.set_time_period_message(self.period_tx)
-                # Event().wait(idle_period)
+                Event().wait(idle_period)
             
-            Event().wait(0.001)
+            # Event().wait(0.001)
 
 
     def rx_task(self):
