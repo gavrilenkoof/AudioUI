@@ -19,6 +19,8 @@ class ClientTCP:
         self._timeout = timeout
         self._connected = False
 
+        self._prev_answ = 0
+
     def get_connection_status(self):
         return self._connected
 
@@ -26,7 +28,7 @@ class ClientTCP:
         self._ip = ip
         self._port = port
 
-        self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._socket = socket.socket(self._address_family, self._socket_kind)
         self._socket.settimeout(self._timeout)
         self._socket.connect((self._ip, self._port))
         
@@ -79,12 +81,13 @@ class ClientTCP:
         # val = 50
         # if pos_start != -1 and pos_end != -1:
         #     val = int(new_data[pos_start + 4:pos_end])
-        val = 50
         match = re.search(r'per:\d+', new_data)
         try:
             val = int(match[0][4:])
+            self._prev_answ = val
         except TypeError as ex:
-            logger.error(f"Parse percent error: {ex}. Match:{match}. Set val = 50")
-
+            # logger.error(f"Parse percent error: {ex}. Match:{match}. Set val = 50")
+            val = self._prev_answ
+            pass
 
         return val

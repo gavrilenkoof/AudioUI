@@ -53,14 +53,15 @@ if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
 
 class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
-    DEFAULT_TIMEOUT_MSG = 0.04
+    DEFAULT_TIMEOUT_MSG = 0.02
     DEFAULT_TIMEOUT_MSG_DELTA = 0.005
     DEFAULT_MIC_TIMEOUT_MSG = 0.003
 
     # MSG_LEN_BYTES = 512 # 1024 for 16sign
+    MSG_LEN_BYTES = 512 # 1024 for 16sign
     # MSG_LEN_BYTES = 480
     # MSG_LEN_BYTES = 1920
-    MSG_LEN_BYTES = 2880
+    # MSG_LEN_BYTES = 2880 # with codec
 
     PREPARED_MSG_SECONDS = 5 # sec
 
@@ -76,17 +77,17 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         super(AudioUIApp, self).__init__(parent)
         self.setupUi(self)
 
-        self.setWindowTitle('Audio')
+        self.setWindowTitle('Audio v2.1.0')
         self.setWindowIcon(QtGui.QIcon(find_data_file("icons\\mic.png")))
 
-        self._converter = Converter(True, 48000)
+        self._converter = Converter(True, 16000)
         self._file_audio = FileAudio()
         self._microphone = Microphone(1, pyaudio.paInt16)
-        # self._connection = ClientTCP(address_family=socket.AF_INET, socket_kind=socket.SOCK_STREAM, 
-        #                             timeout=0.5)
-        self._connection = ClientUDP(address_family=socket.AF_INET, socket_kind=socket.SOCK_DGRAM, 
+        self._connection = ClientTCP(address_family=socket.AF_INET, socket_kind=socket.SOCK_STREAM, 
                                     timeout=1.5)
-        self._codec = OpusCodec(self._converter.get_target_sample_rate(), 1, "voip")
+        # self._connection = ClientUDP(address_family=socket.AF_INET, socket_kind=socket.SOCK_DGRAM, 
+                                    # timeout=1.5)
+        # self._codec = OpusCodec(self._converter.get_target_sample_rate(), 1, "voip")
 
         self._num_prepared_msg_audio = int((self._converter.get_target_sample_rate() / AudioUIApp.MSG_LEN_BYTES) * AudioUIApp.PREPARED_MSG_SECONDS) + 1
 
@@ -100,7 +101,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self._kd = 0.0
         self._alpha = 1
         self._pid_min_out = AudioUIApp.DEFAULT_TIMEOUT_MSG
-        self._pid_max_out = AudioUIApp.DEFAULT_TIMEOUT_MSG * 10 # sec
+        self._pid_max_out = AudioUIApp.DEFAULT_TIMEOUT_MSG * 5 # sec
         self._max_windup = 1
 
         self._pid = PIDController(kp=self._kp, ki=self._ki, kd=self._kd, max_windup=self._max_windup, 
@@ -419,7 +420,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self._pid.setTarget(85);
         def_val = self._pid.update(val, time.time())
         self.set_time_period_message(def_val)
-        logger.debug(f"{def_val}, {val}")
+        # logger.debug(f"{def_val}, {val}")
         # logger.debug(f"{val}")
           
     def send_error_periodicaly(self, err_text, period_s, last_send):
@@ -462,6 +463,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.last_timestamp = 0;
         self.set_time_period_message(AudioUIApp.DEFAULT_MIC_TIMEOUT_MSG)
 
+        self.period_send_volume = 0.25 # sec
+        last_timestamp_volume = time.time()
+
         while True:
 
             message = "idle".encode("utf-8")
@@ -489,13 +493,14 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 message = AudioUIApp.set_volume(message, self.volume)
                 message = message.astype(np.int16)
                 message = message.tobytes()
+                # print(len(message))
 
-                if len(message) != (2 * AudioUIApp.MSG_LEN_BYTES):
-                    message += (b"\x00" * (2 * AudioUIApp.MSG_LEN_BYTES - len(message)))
+                # if len(message) != (2 * AudioUIApp.MSG_LEN_BYTES):
+                    # message += (b"\x00" * (2 * AudioUIApp.MSG_LEN_BYTES - len(message)))
        
                 
                 chunk_convert = round(chunk * (self._converter.get_target_sample_rate() / self._file_audio.get_source_sample_rate()))
-                message = self._codec.encode(message, chunk_convert)
+                # message = self._codec.encode(message, chunk_convert)
 
                 try:
                     self._connection.send(message)
@@ -536,7 +541,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     # print(message.shape)
 
                     chunk_convert = round(chunk * (self._converter.get_target_sample_rate() / self._microphone.get_source_sample_rate()))
-                    message = self._codec.encode(message, chunk_convert)
+                    # message = self._codec.encode(message, chunk_convert)
 
                     # print(len(message))
 
@@ -575,11 +580,11 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     self.timestamp_error_idle = self.send_error_periodicaly(f"[ERROR]Send heartbeat message to megaphone timeout", 5, self.timestamp_error_idle)
                 except ConnectionResetError as ex:
                     self.timestamp_connection_reset_error = self.send_error_periodicaly(f"[ERROR]Fatal connection lost! Try to reconnect or reboot server!", 5, self.timestamp_connection_reset_error)
+                
 
                 # self.period_tx = period_send_idle
                 # self.set_time_period_message(self.period_tx)
                 Event().wait(idle_period)
-            
             # Event().wait(0.001)
 
 
