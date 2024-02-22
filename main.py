@@ -53,7 +53,7 @@ if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
 
 class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
-    DEFAULT_TIMEOUT_MSG = 0.02
+    DEFAULT_TIMEOUT_MSG = 0.027
     DEFAULT_TIMEOUT_MSG_DELTA = 0.005
     DEFAULT_MIC_TIMEOUT_MSG = 0.003
 
@@ -63,7 +63,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
     # MSG_LEN_BYTES = 1920
     # MSG_LEN_BYTES = 2880 # with codec
 
-    PREPARED_MSG_SECONDS = 5 # sec
+    PREPARED_MSG_SECONDS = 15 # sec
 
     CURRENT_MODE_FILE = 1
     CURRENT_MODE_MIC = 2 
@@ -96,7 +96,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.play_audio_mic = AudioUIApp.PLAY_MIC_STOP
         self.period = AudioUIApp.DEFAULT_TIMEOUT_MSG 
 
-        self._kp = -0.01
+        self._kp = -0.1
         self._ki = -0.05
         self._kd = 0.0
         self._alpha = 1
@@ -417,7 +417,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         # if def_val <= 0:
         #     def_val = 0.001
         #     logger.debug(f"new period < 0. Set 0.001 ms")
-        self._pid.setTarget(85);
+        self._pid.setTarget(80);
         def_val = self._pid.update(val, time.time())
         self.set_time_period_message(def_val)
         # logger.debug(f"{def_val}, {val}")
@@ -580,6 +580,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     self.timestamp_error_idle = self.send_error_periodicaly(f"[ERROR]Send heartbeat message to megaphone timeout", 5, self.timestamp_error_idle)
                 except ConnectionResetError as ex:
                     self.timestamp_connection_reset_error = self.send_error_periodicaly(f"[ERROR]Fatal connection lost! Try to reconnect or reboot server!", 5, self.timestamp_connection_reset_error)
+                except OSError as ex:
+                    pass
                 
 
                 # self.period_tx = period_send_idle
