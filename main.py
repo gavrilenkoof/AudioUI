@@ -337,6 +337,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             logger.error(f"ConnectionRefusedError. {ex}")
             self.close_connection()
             self.set_text_browser(f"Bad address! Сheck that the address is correct!")
+        except OSError as ex:
+            logger.error(f"NoRouteToHost. {ex}")
+            self.close_connection()
 
     def play_wav_file_handler(self):
         logger.info("Play WAV file handler")
@@ -452,7 +455,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         idle_period = 0.03
 
         time_last_send_idle = 0
-        period_send_idle = 0.5 #sec
+        period_send_idle = 0.250 #sec
 
         self.timestamp_timeout_send_tx_audio = 0
         self.timestamp_timeout_send_tx_mic = 0
@@ -507,11 +510,13 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     self.clear_timestamp_error_tx()
                 except socket.timeout as ex:
                     logger.error(f"Send audio error: {ex}")
-                    self.timestamp_timeout_send_tx_audio = self.send_error_periodicaly(f"[ERROR]Send audio timeout!", 2, self.timestamp_timeout_send_tx_audio)
+                    self.timestamp_timeout_send_tx_audio = self.send_error_periodicaly(f"[ERROR]Send audio timeout!", 5, self.timestamp_timeout_send_tx_audio)
                 except BrokenPipeError as ex:
                     logger.error(f"Broken pip error: {ex}")
                     self.timestamp_broken_pipe_error = self.send_error_periodicaly(f"[ERROR]Fatal connection lost! Reconnect to server or reboot", 5, self.timestamp_broken_pipe_error)
                     self.close_connection()
+                except OSError as ex:
+                    pass
 
 
                 self.period = self.get_time_period_message()
@@ -551,9 +556,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
                 except BrokenPipeError as ex:
                     self.timestamp_error_idle = self.send_error_periodicaly(f"[ERROR]Fatal connection lost! Try to reconnect or reboot server!", 5, self.timestamp_error_idle)
-                    self.close_connection()
+                    # self.close_connection()
                 except socket.timeout as ex:
-                    self.timestamp_timeout_send_tx_mic = self.send_error_periodicaly(f"[ERROR]Send microphone data timeout", 2, self.timestamp_timeout_send_tx_mic)
+                    self.timestamp_timeout_send_tx_mic = self.send_error_periodicaly(f"[ERROR]Send microphone data timeout", 5, self.timestamp_timeout_send_tx_mic)
                 except AttributeError as ex:
                     logger.error(f"AttributeError MIC. {ex}")
                     pass
@@ -573,7 +578,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                         self.clear_timestamp_error_tx()
                 except BrokenPipeError as ex:
                     self.timestamp_broken_pipe_error = self.send_error_periodicaly(f"[ERROR]Fatal connection lost! Reconnect to server or reboot", 5, self.timestamp_broken_pipe_error)
-                    self.close_connection()
+                    # self.close_connection()
                 except AttributeError as ex:
                     logger.debug(f"AttributeError. {ex}")
                 except socket.timeout as ex:

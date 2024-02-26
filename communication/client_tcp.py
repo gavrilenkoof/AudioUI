@@ -87,6 +87,7 @@ class ClientTCP:
             self._prev_answ = val
         except TypeError as ex:
             # logger.error(f"Parse percent error: {ex}. Match:{match}. Set val = 50")
+            logger.error(f"data:{data}")
             val = self._prev_answ
             pass
 
