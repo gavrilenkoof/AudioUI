@@ -22,6 +22,7 @@ from functional.opus_codec import OpusCodec
 from functional.pid_controller import PIDController
 from communication.client_tcp import ClientTCP
 from communication.client_udp import ClientUDP
+from setup import version
 
 
 import time
@@ -77,7 +78,7 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         super(AudioUIApp, self).__init__(parent)
         self.setupUi(self)
 
-        self.setWindowTitle('Audio v2.1.0')
+        self.setWindowTitle(f'Audio v{version}')
         self.setWindowIcon(QtGui.QIcon(find_data_file("icons\\mic.png")))
 
         self._converter = Converter(True, 16000)
