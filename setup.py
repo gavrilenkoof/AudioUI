@@ -2,7 +2,7 @@ import os
 import sys
 from setuptools import setup
 
-version="2.0.0"
+version="2.1.0"
 upgrade_code = '{F46BA620-C027-4E68-9069-5D5D4E1FF30A}',
 
 HUMAN_FRIENDLY_NAME = 'AudioUI'

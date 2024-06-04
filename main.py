@@ -19,7 +19,10 @@ from functional.microphone import Microphone
 from functional.file_audio import FileAudio
 from functional.converter import Converter
 from functional.opus_codec import OpusCodec
+from functional.pid_controller import PIDController
 from communication.client_tcp import ClientTCP
+from communication.client_udp import ClientUDP
+from setup import version
 
 
 import time
@@ -51,16 +54,17 @@ if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
 
 class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
-    DEFAULT_TIMEOUT_MSG = 0.04
+    DEFAULT_TIMEOUT_MSG = 0.015
     DEFAULT_TIMEOUT_MSG_DELTA = 0.005
     DEFAULT_MIC_TIMEOUT_MSG = 0.003
 
     # MSG_LEN_BYTES = 512 # 1024 for 16sign
+    MSG_LEN_BYTES = 512 # 1024 for 16sign
     # MSG_LEN_BYTES = 480
     # MSG_LEN_BYTES = 1920
-    MSG_LEN_BYTES = 2880
+    # MSG_LEN_BYTES = 2880 # with codec
 
-    PREPARED_MSG_SECONDS = 5 # sec
+    PREPARED_MSG_SECONDS = 15 # sec
 
     CURRENT_MODE_FILE = 1
     CURRENT_MODE_MIC = 2 
@@ -74,15 +78,17 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         super(AudioUIApp, self).__init__(parent)
         self.setupUi(self)
 
-        self.setWindowTitle('Audio')
+        self.setWindowTitle(f'Audio v{version}')
         self.setWindowIcon(QtGui.QIcon(find_data_file("icons\\mic.png")))
 
-        self._converter = Converter(True, 48000)
+        self._converter = Converter(True, 16000)
         self._file_audio = FileAudio()
         self._microphone = Microphone(1, pyaudio.paInt16)
         self._connection = ClientTCP(address_family=socket.AF_INET, socket_kind=socket.SOCK_STREAM, 
-                                    timeout=0.5)
-        self._codec = OpusCodec(self._converter.get_target_sample_rate(), 1, "voip")
+                                    timeout=1.5)
+        # self._connection = ClientUDP(address_family=socket.AF_INET, socket_kind=socket.SOCK_DGRAM, 
+                                    # timeout=1.5)
+        # self._codec = OpusCodec(self._converter.get_target_sample_rate(), 1, "voip")
 
         self._num_prepared_msg_audio = int((self._converter.get_target_sample_rate() / AudioUIApp.MSG_LEN_BYTES) * AudioUIApp.PREPARED_MSG_SECONDS) + 1
 
@@ -90,6 +96,17 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.play_wav_file = AudioUIApp.PLAY_WAV_FILE_STOP
         self.play_audio_mic = AudioUIApp.PLAY_MIC_STOP
         self.period = AudioUIApp.DEFAULT_TIMEOUT_MSG 
+
+        self._kp = -0.1
+        self._ki = -0.05
+        self._kd = 0.0
+        self._alpha = 1
+        self._pid_min_out = AudioUIApp.DEFAULT_TIMEOUT_MSG
+        self._pid_max_out = AudioUIApp.DEFAULT_TIMEOUT_MSG * 5 # sec
+        self._max_windup = 1
+
+        self._pid = PIDController(kp=self._kp, ki=self._ki, kd=self._kd, max_windup=self._max_windup, 
+                                alpha=self._alpha, u_bounds=[self._pid_min_out, self._pid_max_out])
         
         self.thread_client_configurations()
         self.widget_adjust()
@@ -208,14 +225,16 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
     def close_connection(self):
 
-        self.thr_client_tx_should_work = False
-        self.thr_client_rx_should_work = False
-
         try:
             message = "idle".encode("utf-8") # for stop playing audio
             self._connection.send(message)
         except:
             logger.debug("Send close idle error")
+
+        self.thr_client_tx_should_work = False
+        self.thr_client_rx_should_work = False
+
+        Event().wait(0.05)
 
         self._connection.disconnect()
 
@@ -284,12 +303,25 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
     def connect_server_handler(self):
         logger.info("Connecting to the server handler")
 
+        # ip = "192.168.0.107"
+        # port = 7
+        # s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
+        # send_data = "Type some text to send =>";
+        # s.sendto(send_data.encode('utf-8'), (ip, port))
+        # print("\n\n 1. Client Sent : ", send_data, "\n\n")
+        # data, address = s.recvfrom(4096)
+        # print("\n\n 2. Client received : ", data.decode('utf-8'), "\n\n")
+        # s.close()
+
+
         self.close_connection()
 
         try:
             tcp_ip, tcp_port = self.get_ip_address()
             self._connection.connect(tcp_ip, tcp_port)
             # self._connection.connect("google.com", 80)
+            # self._connection.send("test".encode())
+            # ret = self._connection.read(32)
             self.thr_client_tx_should_work = True
             self.thr_client_rx_should_work = True
             self.set_text_browser(f"Connection to {tcp_ip}:{tcp_port} successfully")
@@ -306,10 +338,14 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
             logger.error(f"ConnectionRefusedError. {ex}")
             self.close_connection()
             self.set_text_browser(f"Bad address! Сheck that the address is correct!")
+        except OSError as ex:
+            logger.error(f"NoRouteToHost. {ex}")
+            self.close_connection()
 
     def play_wav_file_handler(self):
         logger.info("Play WAV file handler")
-
+        self._pid.reset_part()
+        self._pid.setStartTime(time.time())
         if self.play_wav_file == AudioUIApp.PLAY_WAV_FILE_STOP:
             self.play_wav_file = AudioUIApp.PLAY_WAV_FILE_PLAYING
             logger.debug("Play file")
@@ -325,7 +361,8 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
     def play_audio_mic_handler(self):
         logger.info("Play audio MIC handler")
-
+        self._pid.reset_part()
+        self._pid.setStartTime(time.time())
         if self.play_audio_mic == AudioUIApp.PLAY_MIC_STOP:
 
             self._microphone.enable()
@@ -356,50 +393,82 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
         self.period = value
 
     def set_timeout_period(self, val):
-        def_val = AudioUIApp.DEFAULT_TIMEOUT_MSG
+        # def_val = AudioUIApp.DEFAULT_TIMEOUT_MSG
 
-        if self.current_mode == AudioUIApp.CURRENT_MODE_FILE:
-            def_val = AudioUIApp.DEFAULT_TIMEOUT_MSG
-        elif self.current_mode == AudioUIApp.CURRENT_MODE_MIC:
-            def_val = AudioUIApp.DEFAULT_MIC_TIMEOUT_MSG
-        else:
-            def_val = AudioUIApp.DEFAULT_TIMEOUT_MSG
+        # if self.current_mode == AudioUIApp.CURRENT_MODE_FILE:
+        #     def_val = AudioUIApp.DEFAULT_TIMEOUT_MSG
+        # elif self.current_mode == AudioUIApp.CURRENT_MODE_MIC:
+        #     def_val = AudioUIApp.DEFAULT_MIC_TIMEOUT_MSG
+        # else:
+        #     def_val = AudioUIApp.DEFAULT_TIMEOUT_MSG
 
-        if val >= 0 and val <= 30:
-            def_val = def_val - 0 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA      
-        elif val >= 30 and val < 40:
-            def_val = def_val - 0 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
-        elif val >= 40 and val < 50:
-            def_val = def_val - 0 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
-        elif val >= 50 and val < 70:
-            def_val = def_val - 0 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
-        elif val >= 70 and val < 80:
-            def_val = def_val 
-        elif val >= 80 and val < 90:
-            def_val = def_val + 2 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
-        elif val >= 90:
-            def_val = def_val + 4 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA   
+        # if val >= 0 and val <= 30:
+        #     def_val = def_val - 0 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA      
+        # elif val >= 30 and val < 40:
+        #     def_val = def_val - 0 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
+        # elif val >= 40 and val < 50:
+        #     def_val = def_val - 0 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
+        # elif val >= 50 and val < 70:
+        #     def_val = def_val - 0 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
+        # elif val >= 70 and val < 80:
+        #     def_val = def_val 
+        # elif val >= 80 and val < 90:
+        #     def_val = def_val + 2 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA 
+        # elif val >= 90:
+        #     def_val = def_val + 4 * AudioUIApp.DEFAULT_TIMEOUT_MSG_DELTA   
 
 
-        if def_val <= 0:
-            def_val = 0.001
-            logger.debug(f"new period < 0. Set 0.001 ms")
-
+        # if def_val <= 0:
+        #     def_val = 0.001
+        #     logger.debug(f"new period < 0. Set 0.001 ms")
+        self._pid.setTarget(80);
+        def_val = self._pid.update(val, time.time())
         self.set_time_period_message(def_val)
-
-        logger.debug(f"{val}")
+        # logger.debug(f"{def_val}, {val}")
+        # logger.debug(f"{val}")
           
+    def send_error_periodicaly(self, err_text, period_s, last_send):
+        ret = last_send
+        if time.time() - last_send >= period_s:
+            ret = time.time()
+            self.set_text_browser(f"{err_text}")
+        return ret
+    
+    def clear_timestamp_error_rx(self):
+        self.timestamp_timeout_oserror = 0
+        self.timestamp_timeout_read_rx = 0
 
+    def clear_timestamp_error_tx(self):
+        self.timestamp_timeout_send_tx_audio = 0
+        self.timestamp_timeout_send_tx_mic = 0
+        self.timestamp_broken_pipe_error = 0
+        self.timestamp_error_idle = 0
+        self.timestamp_connection_reset_error = 0
+
+    def ready_to_send(self, time, last_timestamp, period):
+        if(time - last_timestamp >= period):
+            return True
+        return False
+        
  
     def tx_task(self):
 
         idle_period = 0.03
 
-        time_last_send_idle = time.time()
-        period_send_idle = 0.5 #sec
+        time_last_send_idle = 0
+        period_send_idle = 0.250 #sec
 
-        send_error_once = 1
-        send_error_once_file = 1
+        self.timestamp_timeout_send_tx_audio = 0
+        self.timestamp_timeout_send_tx_mic = 0
+        self.timestamp_broken_pipe_error = 0
+        self.timestamp_error_idle = 0
+        self.timestamp_connection_reset_error = 0
+
+        self.last_timestamp = 0;
+        self.set_time_period_message(AudioUIApp.DEFAULT_MIC_TIMEOUT_MSG)
+
+        self.period_send_volume = 0.25 # sec
+        last_timestamp_volume = time.time()
 
         while True:
 
@@ -407,6 +476,9 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
 
             if self.thr_client_tx_should_work is True and self.play_wav_file == AudioUIApp.PLAY_WAV_FILE_PLAYING and \
                 self.current_mode == AudioUIApp.CURRENT_MODE_FILE and self._file_audio.is_correct_wav_file():
+                # self.ready_to_send(time.time(), self.last_timestamp, self.get_time_period_message()):
+
+                self.last_timestamp = time.time()
 
                 chunk = int(AudioUIApp.MSG_LEN_BYTES * 
                             (self._file_audio.get_source_sample_rate() / self._converter.get_target_sample_rate()))
@@ -425,36 +497,39 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                 message = AudioUIApp.set_volume(message, self.volume)
                 message = message.astype(np.int16)
                 message = message.tobytes()
+                # print(len(message))
 
-                if len(message) != (2 * AudioUIApp.MSG_LEN_BYTES):
-                    message += (b"\x00" * (2 * AudioUIApp.MSG_LEN_BYTES - len(message)))
+                # if len(message) != (2 * AudioUIApp.MSG_LEN_BYTES):
+                    # message += (b"\x00" * (2 * AudioUIApp.MSG_LEN_BYTES - len(message)))
        
                 
                 chunk_convert = round(chunk * (self._converter.get_target_sample_rate() / self._file_audio.get_source_sample_rate()))
-                message = self._codec.encode(message, chunk_convert)
-
+                # message = self._codec.encode(message, chunk_convert)
 
                 try:
                     self._connection.send(message)
-                    send_error_once_file = 1
+                    self.clear_timestamp_error_tx()
                 except socket.timeout as ex:
-                    if send_error_once_file != 0:
-                        logger.error(f"Send audio error: {ex}")
-                        self.set_text_browser(f"Send audio error!")
-                        send_error_once_file -= 1
+                    logger.error(f"Send audio error: {ex}")
+                    self.timestamp_timeout_send_tx_audio = self.send_error_periodicaly(f"[ERROR]Send audio timeout!", 5, self.timestamp_timeout_send_tx_audio)
                 except BrokenPipeError as ex:
-                    if send_error_once_file != 0:
-                        logger.error(f"Broken pip error: {ex}")
-                        self.set_text_browser(f"Fatal connection lost! Reconnect to server or reboot")
-                        send_error_once_file -= 1
-                        self.close_connection()
+                    logger.error(f"Broken pip error: {ex}")
+                    self.timestamp_broken_pipe_error = self.send_error_periodicaly(f"[ERROR]Fatal connection lost! Reconnect to server or reboot", 5, self.timestamp_broken_pipe_error)
+                    self.close_connection()
+                except OSError as ex:
+                    pass
 
-                period = self.get_time_period_message()
-                Event().wait(period)
+
+                self.period = self.get_time_period_message()
+                # self.set_time_period_message(self.period_tx)
+                Event().wait(self.period)
 
             elif self.thr_client_tx_should_work is True and self.play_audio_mic == AudioUIApp.PLAY_MIC_PLAYING and \
                  self.current_mode == AudioUIApp.CURRENT_MODE_MIC and self._microphone.get_status_connect():
+                # and self.ready_to_send(time.time(), self.last_timestamp, self.get_time_period_message()):
                 
+                self.last_timestamp = time.time()
+
                 chunk = int(AudioUIApp.MSG_LEN_BYTES * 
                             (self._microphone.get_source_sample_rate() / self._converter.get_target_sample_rate()))
                 try:
@@ -472,88 +547,76 @@ class AudioUIApp(QtWidgets.QMainWindow, AudioUI.Ui_MainWindow):
                     # print(message.shape)
 
                     chunk_convert = round(chunk * (self._converter.get_target_sample_rate() / self._microphone.get_source_sample_rate()))
-                    message = self._codec.encode(message, chunk_convert)
+                    # message = self._codec.encode(message, chunk_convert)
 
                     # print(len(message))
 
                     self._connection.send(message)
-                    send_error_once = 1
+                    self.clear_timestamp_error_tx()
 
 
                 except BrokenPipeError as ex:
-                    if send_error_once != 0:
-                        logger.error(f"Broken pip error: {ex}")
-                        self.set_text_browser(f"Fatal connection lost! Try to reconnect or reboot server!")
-                        send_error_once -= 1
-                    self.close_connection()
+                    self.timestamp_error_idle = self.send_error_periodicaly(f"[ERROR]Fatal connection lost! Try to reconnect or reboot server!", 5, self.timestamp_error_idle)
+                    # self.close_connection()
                 except socket.timeout as ex:
-                    if send_error_once != 0:
-                        logger.error(f"Send microphone data error. {ex}")
-                        self.set_text_browser(f"Send microphone data error!")
-                        send_error_once -= 1
+                    self.timestamp_timeout_send_tx_mic = self.send_error_periodicaly(f"[ERROR]Send microphone data timeout", 5, self.timestamp_timeout_send_tx_mic)
                 except AttributeError as ex:
                     logger.error(f"AttributeError MIC. {ex}")
+                    pass
                 except OSError as ex:
                     logger.error(f"OSError MIC. {ex}")
-
-                Event().wait(AudioUIApp.DEFAULT_MIC_TIMEOUT_MSG)
-                
-                # Event().wait(0.007)
-                # Event().wait(0.1)
+                    pass
+                   
+                self.set_time_period_message(AudioUIApp.DEFAULT_MIC_TIMEOUT_MSG)
 
             else:
                 try:
                     if time.time() - time_last_send_idle >= period_send_idle:
+                    # if self.ready_to_send(time.time(), self.last_timestamp, period_send_idle):
+                        # self.last_timestamp = time.time()
                         time_last_send_idle = time.time()
                         self._connection.send(message)
-                        send_error_once = 1
-                        # logger.warning("idle")
+                        self.clear_timestamp_error_tx()
                 except BrokenPipeError as ex:
-                    if send_error_once != 0:
-                        logger.error(f"Broken pip error: {ex}")
-                        self.set_text_browser(f"Fatal connection lost! Try to reconnect or reboot server!")
-                    self.close_connection()
+                    self.timestamp_broken_pipe_error = self.send_error_periodicaly(f"[ERROR]Fatal connection lost! Reconnect to server or reboot", 5, self.timestamp_broken_pipe_error)
+                    # self.close_connection()
                 except AttributeError as ex:
                     logger.debug(f"AttributeError. {ex}")
                 except socket.timeout as ex:
-                    if send_error_once != 0:
-                        logger.error(f"Send idle error. {ex}")
-                        self.set_text_browser(f"Fatal connection lost! Try to reconnect or reboot server!")
+                    self.timestamp_error_idle = self.send_error_periodicaly(f"[ERROR]Send heartbeat message to megaphone timeout", 5, self.timestamp_error_idle)
                 except ConnectionResetError as ex:
-                    if send_error_once != 0:
-                        logger.error(f"Send message error. {ex}")
-                        self.set_text_browser(f"Fatal connection lost! Try to reconnect or reboot server!")
-                finally:
-                    send_error_once -= 1
+                    self.timestamp_connection_reset_error = self.send_error_periodicaly(f"[ERROR]Fatal connection lost! Try to reconnect or reboot server!", 5, self.timestamp_connection_reset_error)
+                except OSError as ex:
+                    pass
+                
 
+                # self.period_tx = period_send_idle
+                # self.set_time_period_message(self.period_tx)
                 Event().wait(idle_period)
-
-            
+            # Event().wait(0.001)
 
 
     def rx_task(self):
 
-        send_error_once = 0
+        self.timestamp_timeout_read_rx = 0
+        self.timestamp_timeout_oserror = 0
 
         while True:
             if self.thr_client_rx_should_work is True and self._connection.get_connection_status() is True:
-
                 try:
                     recv_data = self._connection.read(32)
                     if recv_data is not None:
-                        val = self._connection.parse_answer_tcp_percent(recv_data)
+                        val = self._connection.parse_answer_percent(recv_data)
                         self.set_timeout_period(val)
-                        send_error_once = 0
+                        self.clear_timestamp_error_rx()
+                        self.label_telem.setText(f"{val} %")
                 except socket.timeout as ex:
-                    if send_error_once == 0:
-                        logger.error(f"Read socket timeout")
-                except OSError as ex:
-                    logger.error(f"Read OSError. Bad file descriptor: {ex}")
-                    if send_error_once == 0:
-                        self.set_text_browser(f"Fatal connection lost! Try to reconnect or reboot server!")
-                finally:
-                    send_error_once = 1
+                        # logger.error(f"Read socket timeout")
+                    self.timestamp_timeout_read_rx = self.send_error_periodicaly(f"[ERROR]Megaphone response timeout", 5, self.timestamp_timeout_read_rx)
 
+                except OSError as ex:
+                    # logger.error(f"Read OSError. Bad file descriptor: {ex}")
+                    self.timestamp_timeout_oserror = self.send_error_periodicaly(f"[ERROR]Fatal connection lost! Try to reconnect or reboot server!", 5, self.timestamp_timeout_oserror)
 
                 Event().wait(0.001)
             else:                

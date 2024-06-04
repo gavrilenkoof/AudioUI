@@ -88,6 +88,11 @@ class FileAudio:
     def get_chunk_prepared_data(self, chunk):
         data = self._prepared_data[self._number_of_message * chunk: (self._number_of_message + 1) * chunk]
 
+        if len(data) == 0 and self._number_of_message <= self._all_number:
+            self._prepared_data_end_file = True
+            self._number_of_message = 0
+            return data
+
         if self._number_of_message >= self._all_number - 1:
             self._prepared_data_end_file = True
             self._number_of_message = 0
